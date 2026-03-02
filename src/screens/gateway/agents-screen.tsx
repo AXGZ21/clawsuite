@@ -443,6 +443,32 @@ function formatRelativeTime(value: unknown): string {
   return `${days}d ago`
 }
 
+function getSessionTokenCount(session: SessionEntry): number {
+  const rawValue =
+    typeof session.totalTokens === 'number'
+      ? session.totalTokens
+      : typeof session.tokenCount === 'number'
+        ? session.tokenCount
+        : 0
+
+  return Number.isFinite(rawValue) ? rawValue : 0
+}
+
+function formatTokenCount(value: number): string {
+  return new Intl.NumberFormat('en-US').format(Math.max(0, Math.floor(value)))
+}
+
+function getSessionStatusBadgeClasses(session: SessionEntry): string {
+  const status = normalizeToken(readString(session.status))
+  if (PAUSED_STATUSES.has(status)) {
+    return 'border border-primary-700 bg-primary-800 text-primary-200'
+  }
+  if (RUNNING_STATUSES.has(status) || status.length === 0) {
+    return 'border border-accent-500/40 bg-accent-500/15 text-accent-300'
+  }
+  return 'border border-primary-800 bg-primary-900 text-primary-300'
+}
+
 async function readResponseError(response: Response): Promise<string> {
   try {
     const payload = (await response.json()) as Record<string, unknown>
@@ -630,6 +656,29 @@ export function AgentsScreen({ variant = 'mission-control' }: AgentsScreenProps)
     optimisticPausedByAgentId,
     optimisticPausedByControlKey,
   ])
+
+  const unmatchedSessions = useMemo(() => {
+    const sessions = Array.isArray(sessionsQuery.data) ? sessionsQuery.data : []
+    const matchedSessionKeys = new Set<string>()
+
+    runtimeAgents.forEach((agent) => {
+      agent.matchedSessions.forEach((session) => {
+        const sessionKey = readString(session.key)
+        if (sessionKey) matchedSessionKeys.add(sessionKey)
+      })
+    })
+
+    const cutoff = Date.now() - 10 * 60_000
+
+    return sessions
+      .filter((session) => {
+        const sessionKey = readString(session.key)
+        if (!sessionKey || matchedSessionKeys.has(sessionKey)) return false
+        if (!sessionKey.includes('subagent:')) return false
+        return readTimestamp(session.updatedAt) >= cutoff
+      })
+      .sort((left, right) => readTimestamp(right.updatedAt) - readTimestamp(left.updatedAt))
+  }, [runtimeAgents, sessionsQuery.data])
 
   const groupedSections = useMemo(() => {
     const grouped = new Map<string, Array<AgentRuntime>>()
@@ -978,6 +1027,63 @@ export function AgentsScreen({ variant = 'mission-control' }: AgentsScreenProps)
                   </div>
                 </section>
               ))}
+
+              {unmatchedSessions.length > 0 ? (
+                <section className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <h2 className="text-[10px] font-bold uppercase tracking-widest text-primary-400">
+                      Active Sessions
+                    </h2>
+                    <span className="text-[11px] font-medium text-primary-400">
+                      {unmatchedSessions.length}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {unmatchedSessions.map((session, index) => {
+                      const sessionKey = readString(session.key)
+                      const sessionTarget = getSessionFriendlyId(session) || sessionKey
+
+                      return (
+                        <div
+                          key={`${sessionKey}-${index}`}
+                          className="rounded-2xl border border-primary-800 bg-primary-900 p-4 shadow-sm"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-primary-100">
+                                {getSessionTitle(session)}
+                              </p>
+                              <p className="mt-1 truncate text-xs text-primary-400">
+                                {sessionKey}
+                              </p>
+                            </div>
+                            <span
+                              className={`inline-flex shrink-0 items-center rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${getSessionStatusBadgeClasses(session)}`}
+                            >
+                              {readString(session.status) || 'active'}
+                            </span>
+                          </div>
+
+                          <div className="mt-3 flex items-center justify-between gap-3 text-xs text-primary-300">
+                            <span>{formatTokenCount(getSessionTokenCount(session))} tokens</span>
+                            <span>{formatRelativeTime(session.updatedAt)}</span>
+                          </div>
+
+                          {sessionTarget ? (
+                            <a
+                              href={`/chat/${encodeURIComponent(sessionTarget)}`}
+                              className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-primary-700 px-3 py-1.5 text-xs font-semibold text-accent-300 transition-colors hover:border-accent-500 hover:text-accent-300 sm:px-4 sm:py-2 sm:text-sm"
+                            >
+                              Open Chat
+                            </a>
+                          ) : null}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              ) : null}
             </div>
           )}
         </div>

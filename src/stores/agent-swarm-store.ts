@@ -148,7 +148,7 @@ export const useSwarmStore = create<SwarmState>((set, get) => ({
         const pa = priority[a.swarmStatus] ?? 2
         const pb = priority[b.swarmStatus] ?? 2
         if (pa !== pb) return pa - pb
-        return b.staleness - a.staleness
+        return a.staleness - b.staleness
       })
 
       set({
