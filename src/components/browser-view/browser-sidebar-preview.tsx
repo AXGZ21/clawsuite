@@ -86,7 +86,7 @@ function BrowserSidebarPreview() {
     : PLACEHOLDER_TEXT
 
   return (
-    <Link to="/browser" className="block">
+    <Link to="/dashboard" className="block">
       <div className="flex h-[200px] flex-col overflow-hidden rounded-xl border border-primary-200 bg-primary-100/45 shadow-sm transition-colors hover:border-primary-300 hover:bg-primary-100/65">
         <div className="flex items-center gap-2 border-b border-primary-200/70 bg-primary-50/80 px-2.5 py-2">
           <HugeiconsIcon

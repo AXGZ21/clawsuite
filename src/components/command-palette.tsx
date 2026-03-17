@@ -200,7 +200,7 @@ export function CommandPalette({
         keywords: 'agent swarm orchestrator',
         shortcut: 'Go',
         icon: UserGroupIcon,
-        onSelect: () => void navigate({ to: '/agent-swarm' }),
+        onSelect: () => void navigate({ to: '/agents' }),
       },
       {
         id: 'screen-terminal',
@@ -218,7 +218,7 @@ export function CommandPalette({
         keywords: 'web page inspect',
         shortcut: 'Go',
         icon: GlobeIcon,
-        onSelect: () => void navigate({ to: '/browser' }),
+        onSelect: () => void navigate({ to: '/dashboard' }),
       },
       {
         id: 'screen-skills',
@@ -236,7 +236,7 @@ export function CommandPalette({
         keywords: 'jobs schedules automations',
         shortcut: 'Go',
         icon: Clock01Icon,
-        onSelect: () => void navigate({ to: '/cron' }),
+        onSelect: () => void navigate({ to: '/dashboard' }),
       },
       {
         id: 'screen-sessions',
@@ -245,7 +245,7 @@ export function CommandPalette({
         keywords: 'gateway conversations history',
         shortcut: 'Go',
         icon: UserMultipleIcon,
-        onSelect: () => void navigate({ to: '/sessions' }),
+        onSelect: () => void navigate({ to: '/dashboard' }),
       },
       {
         id: 'screen-usage',
@@ -263,7 +263,7 @@ export function CommandPalette({
         keywords: 'activity debug events',
         shortcut: 'Go',
         icon: Notification03Icon,
-        onSelect: () => void navigate({ to: '/activity' }),
+        onSelect: () => void navigate({ to: '/dashboard' }),
       },
       {
         id: 'screen-settings',

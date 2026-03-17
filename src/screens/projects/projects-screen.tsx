@@ -1052,16 +1052,8 @@ export function ProjectsScreen({
       current ? { ...current, tasks: cleanedTasks } : current,
     )
     void navigate({
-      to: '/plan-review',
+      to: '/projects',
       search: {
-        plan: JSON.stringify({
-          goal: missionLauncher.goal,
-          projectId: projectDetail?.id ?? selectedSummary?.id ?? null,
-          projectName: projectDetail?.name ?? selectedSummary?.name ?? null,
-          phaseId: missionLauncher.phase.id,
-          phaseName: missionLauncher.phase.name,
-          tasks: cleanedTasks,
-        }),
         missionId: undefined,
         projectId: undefined,
       },

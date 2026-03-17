@@ -828,7 +828,7 @@ export function DashboardScreen() {
 
                 <button
                   type="button"
-                  onClick={() => void navigate({ to: '/agent-swarm' })}
+                  onClick={() => void navigate({ to: '/agents' })}
                   className="flex flex-col gap-2 rounded-xl border border-primary-200 bg-primary-50/80 px-3 py-3 text-left shadow-sm active:scale-[0.98] hover:border-orange-300 transition-all dark:border-neutral-800 dark:bg-neutral-900/60"
                 >
                   <span className="flex size-8 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">

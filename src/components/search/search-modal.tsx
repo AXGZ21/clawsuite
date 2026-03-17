@@ -133,7 +133,7 @@ export function SearchModal() {
         description: 'Open the real-time activity log viewer',
         onSelect: () => {
           closeModal()
-          navigate({ to: '/logs' })
+          navigate({ to: '/gateway' })
         },
       },
       {
@@ -143,7 +143,7 @@ export function SearchModal() {
         description: 'Open cron job manager and run history',
         onSelect: () => {
           closeModal()
-          navigate({ to: '/cron' })
+          navigate({ to: '/dashboard' })
         },
       },
       {
@@ -275,7 +275,7 @@ export function SearchModal() {
       badge: entry.level,
       onSelect: () => {
         closeModal()
-        navigate({ to: '/activity' })
+        navigate({ to: '/dashboard' })
       },
     }))
 

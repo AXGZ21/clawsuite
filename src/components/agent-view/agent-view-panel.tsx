@@ -870,7 +870,7 @@ export function AgentViewPanel() {
                   variant="ghost"
                   onClick={function handleExpandHub() {
                     setOpen(false)
-                    navigate({ to: '/agent-swarm' })
+                    navigate({ to: '/agents' })
                   }}
                   aria-label="Open Agent Hub"
                   title="Open Agent Hub"

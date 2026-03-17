@@ -488,7 +488,7 @@ export function NewProjectWizardContent({
         return
       }
 
-      const phase = normalizePhase(
+      void normalizePhase(
         await apiRequest('/api/workspace/phases', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -518,16 +518,8 @@ export function NewProjectWizardContent({
 
       toast('Project created and decomposed', { type: 'success' })
       await navigate({
-        to: '/plan-review',
+        to: '/projects',
         search: {
-          plan: JSON.stringify({
-            goal: spec.trim(),
-            projectId: project.id,
-            projectName: project.name,
-            phaseId: phase.id,
-            phaseName: phase.name,
-            tasks: decomposeResult.tasks,
-          }),
           missionId: undefined,
           projectId: undefined,
         },
