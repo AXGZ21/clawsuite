@@ -620,8 +620,15 @@ export function ChatScreen({
   // Use realtime-merged messages for display (SSE + history)
   // Re-apply display filter to realtime messages
   const finalDisplayMessages = useMemo(() => {
+    // Strip any stale streaming placeholder that survived in realtimeMessages.
+    // The live placeholder is injected separately below via isRealtimeStreaming —
+    // if a message with __streamingStatus === 'streaming' is also in the store
+    // it will render twice (once from store, once from the injected placeholder).
+    const withoutStalePlaceholders = realtimeMessages.filter(
+      (m) => (m as any).__streamingStatus !== 'streaming',
+    )
     // Rebuild display filter on merged messages
-    const filtered = realtimeMessages.filter((msg) => {
+    const filtered = withoutStalePlaceholders.filter((msg) => {
       if (msg.role === 'user') {
         const text = stripQueuedWrapper(textFromMessage(msg))
         if (text.startsWith('A subagent task')) return false
