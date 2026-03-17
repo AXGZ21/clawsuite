@@ -565,7 +565,7 @@ export const useGatewayChatStore = create<GatewayChatState>((set, get) => ({
             __optimisticId: undefined,
             status: undefined,
           }
-          messages.set(sessionKey, sortMessagesChronologically(sessionMessages))
+          messages.set(sessionKey, sessionMessages)
           set({ realtimeMessages: messages, lastEventAt: now })
           break
         }
@@ -588,7 +588,7 @@ export const useGatewayChatStore = create<GatewayChatState>((set, get) => ({
 
         if (duplicateIndex === -1) {
           sessionMessages.push(incomingMessage)
-          messages.set(sessionKey, sortMessagesChronologically(sessionMessages))
+          messages.set(sessionKey, sessionMessages)
           set({ realtimeMessages: messages, lastEventAt: now })
         }
         break
@@ -792,7 +792,7 @@ export const useGatewayChatStore = create<GatewayChatState>((set, get) => ({
           } else {
             sessionMessages.push(completeMessage)
           }
-          messages.set(sessionKey, sortMessagesChronologically(sessionMessages))
+          messages.set(sessionKey, sessionMessages)
           set({ realtimeMessages: messages })
         }
 
