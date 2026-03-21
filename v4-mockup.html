@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawSuite Workspace — V4 Final</title>
+<style>
+:root{--bg:#1a1a2a;--sidebar:#151524;--panel:#1e1e30;--card:#242438;--card2:#2c2c42;--border:#363650;--border-s:#303048;--text:#e8e8ec;--muted:#9ca3af;--dim:#6b7280;--accent:#f97316;--accent2:#fb923c;--as:rgba(249,115,22,.1);--ab:rgba(249,115,22,.3);--green:#22c55e;--gs:rgba(34,197,94,.1);--gb:rgba(34,197,94,.25);--blue:#3b82f6;--bs:rgba(59,130,246,.1);--bb:rgba(59,130,246,.25);--red:#ef4444;--rs:rgba(239,68,68,.1);--rb:rgba(239,68,68,.25);--yellow:#eab308;--ys:rgba(234,179,8,.1);--yb:rgba(234,179,8,.25);--purple:#a855f7;--ps:rgba(168,85,247,.1);--pb:rgba(168,85,247,.25);--teal:#14b8a6;--ts:rgba(20,184,166,.1);--r:10px;--rs:6px;--f:-apple-system,BlinkMacSystemFont,'Inter','SF Pro Display',sans-serif;--m:'SF Mono','Fira Code','JetBrains Mono',monospace}
+.light{--bg:#f5f5f7;--sidebar:#fff;--panel:#fafafa;--card:#fff;--card2:#f0f0f2;--border:#e2e2e8;--border-s:#eaeaef;--text:#1a1a2a;--muted:#6b7280;--dim:#9ca3af;--as:rgba(249,115,22,.08);--ab:rgba(249,115,22,.25);--gs:rgba(34,197,94,.08);--gb:rgba(34,197,94,.2);--bs:rgba(59,130,246,.08);--bb:rgba(59,130,246,.2);--rs:rgba(239,68,68,.08);--rb:rgba(239,68,68,.2);--ys:rgba(234,179,8,.08);--yb:rgba(234,179,8,.2);--ps:rgba(168,85,247,.08);--pb:rgba(168,85,247,.2);--ts:rgba(20,184,166,.08)}
+.light .sb{box-shadow:2px 0 8px rgba(0,0,0,.04)}
+.light .card{box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.light .topbar{box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.light .term-b{background:var(--bg)}
+.light .soul-ed{background:var(--bg)}
+.light .diff-panel{background:var(--bg)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--f);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:13px}
+.app{display:flex;height:100vh}
+
+/* Sidebar */
+.sb{width:220px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sb-ws{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.sb-ws-name{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.sb-ws-env{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;background:var(--gs);color:var(--green);border:1px solid var(--gb);margin-top:4px}
+.sb-nav{padding:8px;flex:1}
+.sb-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);padding:12px 10px 6px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-size:12px;font-weight:500;transition:all .12s;margin-bottom:1px}
+.sb-item:hover{background:var(--card);color:var(--text)}
+.sb-item.active{background:var(--as);color:var(--accent);font-weight:600}
+.sb-item .icon{font-size:15px;width:20px;text-align:center}
+.sb-item .count{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700}
+.sb-item .count-r{background:var(--rs);color:var(--red)}
+.sb-item .count-m{background:var(--card2);color:var(--muted)}
+.sb-proj{padding-left:38px;font-size:11px}
+
+/* Top bar */
+.topbar{height:42px;border-bottom:1px solid var(--border);background:var(--panel);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.topbar-search{flex:1;max-width:320px}
+.topbar-search input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);padding:6px 10px 6px 28px;color:var(--text);font-size:11px;outline:none}
+.topbar-search input::placeholder{color:var(--dim)}
+.topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.topbar-btn{padding:4px 8px;border-radius:var(--rs);cursor:pointer;color:var(--muted);font-size:14px;position:relative}
+.topbar-btn:hover{background:var(--card);color:var(--text)}
+.topbar-btn .dot{position:absolute;top:2px;right:2px;width:6px;height:6px;background:var(--red);border-radius:50%;border:1.5px solid var(--panel)}
+.topbar-avatar{width:26px;height:26px;border-radius:50%;background:var(--card2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;font-weight:600}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.screen{display:none;flex:1;overflow:hidden}
+.screen.active{display:flex;flex-direction:column}
+.scr-scroll{flex:1;overflow-y:auto;padding:20px 24px}
+
+/* Shared */
+.badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:600;border:1px solid;line-height:1.6;white-space:nowrap}
+.b-g{background:var(--gs);color:var(--green);border-color:var(--gb)}.b-p{background:var(--ps);color:var(--purple);border-color:var(--pb)}.b-b{background:var(--bs);color:var(--blue);border-color:var(--bb)}.b-a{background:var(--as);color:var(--accent);border-color:var(--ab)}.b-m{background:var(--card2);color:var(--muted);border-color:var(--border)}.b-r{background:var(--rs);color:var(--red);border-color:var(--rb)}.b-y{background:var(--ys);color:var(--yellow);border-color:var(--yb)}.b-t{background:var(--ts);color:var(--teal);border-color:rgba(20,184,166,.25)}
+.btn{padding:7px 14px;border-radius:var(--rs);font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text);transition:all .12s;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{border-color:var(--ab)}.btn-p{background:linear-gradient(135deg,var(--accent),#ea580c);color:#fff;border-color:transparent}.btn-p:hover{box-shadow:0 4px 16px rgba(249,115,22,.3)}.btn-s{background:var(--green);color:#fff;border-color:transparent}.btn-d{background:var(--rs);color:var(--red);border-color:var(--rb)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r)}
+.sec{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);margin-bottom:8px}
+.input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:7px 10px;color:var(--text);font-size:11px;outline:none;font-family:var(--f)}
+.input:focus{border-color:var(--accent)}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}.cursor{display:inline-block;width:7px;height:14px;background:var(--accent);animation:blink 1s infinite;vertical-align:middle}
+
+/* KPI row */
+.kpi-row{display:grid;gap:10px;margin-bottom:20px}
+.kpi{padding:14px 16px}
+.kpi .v{font-size:20px;font-weight:700;line-height:1.2}
+.kpi .l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.kpi .sub{font-size:10px;margin-top:3px}
+
+/* Agent mini badges */
+.agent-pills{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px}
+.agent-pill{display:flex;align-items:center;gap:3px;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:600;background:var(--card2);border:1px solid var(--border);color:var(--muted)}
+.agent-pill .adot{width:5px;height:5px;border-radius:50%}
+
+/* ═══ S1: PROJECTS DASHBOARD ═══ */
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:20px}
+.pc{padding:16px;cursor:pointer;transition:border-color .12s}
+.pc:hover{border-color:var(--ab)}
+.pc-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pc-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.pc-name{font-size:13px;font-weight:700}
+.pc-path{font-size:10px;color:var(--dim);font-family:var(--m)}
+.pc-phase{font-size:11px;color:var(--muted);margin-bottom:6px}
+.pc-bar{height:3px;background:var(--card2);border-radius:2px;overflow:hidden;margin-bottom:5px}
+.pc-bar-f{height:100%;border-radius:2px}
+.pc-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px}
+.pc-gates{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.pc-btns{display:flex;gap:5px;margin-top:10px}
+.pc-btns .btn{padding:4px 10px;font-size:10px}
+
+/* Inbox panel */
+.inbox{margin-bottom:20px}
+.inbox-bar{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.inbox-filter{padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;background:var(--card);border:1px solid var(--border);color:var(--muted);font-weight:500}
+.inbox-filter:hover,.inbox-filter.active{background:var(--as);color:var(--accent);border-color:var(--ab)}
+.inbox-row{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border-s);transition:background .1s;cursor:pointer}
+.inbox-row:hover{background:var(--card2)}
+.inbox-row:last-child{border-bottom:none}
+.inbox-proj{font-size:9px;padding:1px 6px;border-radius:3px;font-weight:700;flex-shrink:0}
+.inbox-task{flex:1;font-size:12px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inbox-pills{display:flex;gap:3px;flex-shrink:0}
+.inbox-acts{display:flex;gap:3px;flex-shrink:0}
+.inbox-acts .btn{padding:2px 8px;font-size:9px}
+.inbox-time{font-size:9px;color:var(--dim);font-family:var(--m);flex-shrink:0}
+
+/* Agent capacity */
+.cap-row{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:11px}
+.cap-name{flex:1;font-weight:500}
+.cap-bar{flex:1;max-width:80px;height:4px;background:var(--card2);border-radius:2px;overflow:hidden}
+.cap-bar-f{height:100%;border-radius:2px}
+.cap-text{font-size:10px;color:var(--muted);width:50px;text-align:right}
+
+/* ═══ S2: PROJECT DETAIL ═══ */
+.pd{flex:1;display:flex;overflow:hidden}
+.pd-side{width:260px;border-right:1px solid var(--border);overflow-y:auto;background:var(--sidebar);padding:14px}
+.pd-main{flex:1;overflow-y:auto;padding:18px}
+.pd-back{font-size:10px;color:var(--muted);cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:4px}
+.pd-back:hover{color:var(--text)}
+.pd-name{font-size:16px;font-weight:700;margin-bottom:2px}
+.pd-path{font-size:10px;color:var(--dim);font-family:var(--m);margin-bottom:14px}
+.ph{margin-bottom:3px}
+.ph-h{display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:var(--rs);cursor:pointer;transition:background .1s}
+.ph-h:hover{background:var(--card)}
+.ph-h.active{background:var(--card);border:1px solid var(--ab)}
+.ph-n{flex:1;font-size:11px;font-weight:600}
+.ml{padding-left:24px;margin-top:1px}
+.mi{display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:3px;font-size:10px;cursor:pointer;color:var(--muted)}
+.mi:hover{background:var(--card);color:var(--text)}
+.mi.active{color:var(--accent);background:var(--as)}
+.pd-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+.pd-policy{padding:12px}
+.pd-policy-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;border-bottom:1px solid var(--border-s)}
+.pd-policy-row:last-child{border-bottom:none}
+
+/* ═══ S3: REVIEW QUEUE ═══ */
+.rq{flex:1;overflow-y:auto;padding:20px 24px;max-width:900px;margin:0 auto;width:100%}
+.rq h1{font-size:16px;font-weight:700;margin-bottom:2px}
+.rq .sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+.rq-filters{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.rq-item{display:flex;gap:10px;padding:12px 14px;margin-bottom:4px;cursor:pointer;transition:border-color .12s}
+.rq-item:hover{border-color:var(--ab)}
+.rq-left{flex:1;min-width:0}
+.rq-proj{font-size:9px;font-weight:700;margin-bottom:3px}
+.rq-task{font-size:12px;font-weight:600;margin-bottom:2px}
+.rq-sum{font-size:10px;color:var(--muted);line-height:1.4}
+.rq-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.rq-time{font-size:9px;color:var(--dim)}
+.rq-acts{display:flex;gap:3px;margin-top:4px}
+.rq-acts .btn{padding:3px 8px;font-size:9px}
+.rq-scope{display:flex;gap:3px;margin-top:3px}
+.rq-kbd{font-size:9px;color:var(--dim);margin-top:12px;border-top:1px solid var(--border);padding-top:8px}
+.rq-kbd kbd{padding:1px 5px;border-radius:3px;background:var(--card2);border:1px solid var(--border);font-family:var(--m);font-size:9px}
+
+/* ═══ S4: MISSION CONTROL ═══ */
+.mc{flex:1;display:flex;overflow:hidden}
+.mc-l{width:220px;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.mc-l-hdr{padding:10px 12px;border-bottom:1px solid var(--border);background:var(--sidebar)}
+.mc-bar{height:3px;background:var(--card2);border-radius:2px;overflow:hidden;margin-top:6px}
+.mc-bar-f{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px}
+.mc-bar-t{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px}
+.mc-tasks{flex:1;overflow-y:auto;padding:4px}
+.mc-t{display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:var(--rs);margin-bottom:1px;font-size:10px;cursor:pointer}
+.mc-t:hover{background:var(--card)}
+.mc-t.active{background:var(--card);outline:1px solid var(--ab)}
+.mc-r{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.mc-plan{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--panel);display:flex;gap:16px;font-size:10px;color:var(--muted);flex-wrap:wrap}
+.mc-plan-item{display:flex;align-items:center;gap:4px}
+.mc-terms{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+.term{border-radius:var(--r);overflow:hidden}
+.term-h{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--border);background:var(--sidebar)}
+.term-h-l{display:flex;align-items:center;gap:5px;font-size:10px}
+.term-h-l .dot{width:5px;height:5px;border-radius:50%}
+.term-h-l .n{font-weight:600}
+.term-h-l .t{color:var(--muted)}
+.term-a{display:flex;gap:3px}
+.term-a button{padding:2px 6px;border-radius:3px;font-size:9px;background:var(--card2);border:1px solid var(--border);color:var(--muted);cursor:pointer}
+.term-b{padding:10px;font-family:var(--m);font-size:10px;line-height:1.6;color:var(--muted);max-height:200px;overflow-y:auto}
+.term-b .cmd{color:var(--green)}.term-b .file{color:var(--accent)}.term-b .info{color:var(--blue)}.term-b .done{color:var(--green)}.term-b .dim{color:var(--dim)}
+.mc-evt{border-top:1px solid var(--border);padding:6px 10px;background:var(--sidebar);max-height:80px;overflow-y:auto}
+.evt-i{display:flex;gap:6px;padding:3px 0;font-size:9px;color:var(--muted)}
+.evt-t{color:var(--dim);font-family:var(--m);flex-shrink:0;width:36px}
+.evt-type{font-size:8px;padding:0 4px;border-radius:2px;font-weight:700;flex-shrink:0}
+/* Policy drawer */
+.mc-drawer{width:200px;border-left:1px solid var(--border);overflow-y:auto;background:var(--sidebar);padding:12px;flex-shrink:0}
+.drawer-row{display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid var(--border-s)}
+.drawer-row:last-child{border-bottom:none}
+.toggle{width:32px;height:16px;border-radius:8px;background:var(--card2);border:1px solid var(--border);cursor:pointer;position:relative;flex-shrink:0}
+.toggle.on{background:var(--green);border-color:var(--green)}
+.toggle::after{content:'';position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .12s}
+.toggle.on::after{left:18px}
+
+/* ═══ S5: CHECKPOINT ═══ */
+.cp{flex:1;overflow-y:auto;display:flex;justify-content:center;padding:20px}
+.cp-in{max-width:720px;width:100%}
+.cp-card{overflow:hidden}
+.cp-hdr{padding:14px 18px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(249,115,22,.05),rgba(168,85,247,.03))}
+.cp-hdr h2{font-size:13px;font-weight:700}
+.cp-hdr-m{display:flex;gap:10px;margin-top:5px;font-size:10px;color:var(--muted);flex-wrap:wrap}
+.cp-body{padding:18px}
+.cp-s{margin-bottom:14px}
+.cp-vis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.cp-vis-p{border-radius:var(--rs);overflow:hidden;border:1px solid var(--border)}
+.cp-vis-l{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:5px 8px;background:var(--sidebar);color:var(--muted);border-bottom:1px solid var(--border)}
+.cp-vis-img{height:130px;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:10px;text-align:center;line-height:1.6}
+.cp-vis-link{font-size:9px;color:var(--blue);padding:4px 8px;border-top:1px solid var(--border);cursor:pointer;display:block}
+.cp-file{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:2px;font-size:10px}
+.cp-fl{display:flex;align-items:center;gap:5px}
+.cp-fb{padding:0 4px;border-radius:2px;font-size:8px;font-weight:700}
+.cp-fb.a{background:var(--gs);color:var(--green)}.cp-fb.m{background:var(--ys);color:var(--yellow)}
+.cp-fn{font-family:var(--m);font-size:10px}
+.cp-fr{display:flex;gap:8px;align-items:center}
+.cp-fr span{font-size:9px}
+/* Verification matrix */
+.vmatrix{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
+.vm-item{display:flex;align-items:center;gap:5px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);font-size:10px}
+.vm-item.pass{border-color:var(--gb);background:var(--gs)}
+.vm-item.warn{border-color:var(--yb);background:var(--ys)}
+.vm-item.na{opacity:.5}
+/* Inline diff */
+.diff-panel{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:10px;font-family:var(--m);font-size:10px;line-height:1.5;max-height:160px;overflow-y:auto;margin-top:6px}
+.diff-add{color:var(--green)}.diff-del{color:var(--red)}.diff-ctx{color:var(--dim)}
+/* Policy warnings */
+.pw{display:flex;align-items:center;gap:5px;padding:5px 8px;background:var(--ys);border:1px solid var(--yb);border-radius:var(--rs);font-size:10px;color:var(--yellow);margin-bottom:3px}
+/* Approval dropdown */
+.approve-group{display:flex;gap:0}
+.approve-main{border-radius:var(--rs) 0 0 var(--rs);padding:9px 14px;background:var(--green);color:#fff;border:none;font-size:11px;font-weight:600;cursor:pointer}
+.approve-drop{border-radius:0 var(--rs) var(--rs) 0;padding:9px 8px;background:var(--green);color:#fff;border:none;border-left:1px solid rgba(255,255,255,.2);cursor:pointer;font-size:10px}
+.cp-actions{display:flex;gap:5px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.cp-actions button{padding:9px 14px;border-radius:var(--rs);font-size:11px;font-weight:600;cursor:pointer;border:none}
+/* Revise panel */
+.revise-panel{padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);margin-top:8px}
+.revise-panel label{display:block;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;margin-top:8px}
+.revise-panel label:first-child{margin-top:0}
+
+/* ═══ S6: AGENTS ═══ */
+.ag{flex:1;display:flex;overflow:hidden}
+.ag-list{width:280px;border-right:1px solid var(--border);overflow-y:auto}
+.ag-list-hdr{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--sidebar)}
+.ag-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border-s);cursor:pointer;transition:background .1s}
+.ag-item:hover{background:var(--card)}
+.ag-item.active{background:var(--card);border-left:2px solid var(--accent)}
+.ag-avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.ag-status{width:6px;height:6px;border-radius:50%;margin-left:auto;flex-shrink:0}
+.ag-detail{flex:1;overflow-y:auto;padding:18px}
+.ag-detail h2{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ag-tabs{display:flex;gap:2px;margin-bottom:14px;flex-wrap:wrap}
+.ag-tab{padding:5px 10px;border-radius:var(--rs);font-size:10px;cursor:pointer;color:var(--muted);font-weight:500}
+.ag-tab:hover{color:var(--text);background:var(--card)}
+.ag-tab.active{color:var(--accent);background:var(--as)}
+.ag-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.ag-stat{padding:10px;text-align:center}
+.ag-stat .v{font-size:16px;font-weight:700}
+.ag-stat .l{font-size:8px;color:var(--muted);text-transform:uppercase;margin-top:1px}
+.cap-toggle{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-s)}
+.cap-label{font-size:11px;font-weight:500}
+.cap-desc{font-size:9px;color:var(--muted)}
+
+/* ═══ S7: TEAMS ═══ */
+.teams{flex:1;overflow-y:auto;padding:20px 24px;max-width:800px;margin:0 auto;width:100%}
+.teams h1{font-size:16px;font-weight:700;margin-bottom:14px}
+.team-card{padding:14px;margin-bottom:8px}
+.team-name{font-size:13px;font-weight:700;margin-bottom:8px}
+.team-members{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.team-member{display:flex;align-items:center;gap:4px;padding:3px 8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);font-size:10px}
+.team-perms{font-size:10px;color:var(--muted);line-height:1.6}
+.audit-row{display:flex;gap:8px;padding:6px 12px;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border-s)}
+.audit-row:last-child{border-bottom:none}
+.audit-time{color:var(--dim);font-family:var(--m);flex-shrink:0;width:50px}
+
+/* ═══ WIZARD ═══ */
+.wiz{flex:1;overflow-y:auto;display:flex;justify-content:center;padding:20px}
+.wiz-in{max-width:580px;width:100%}
+.wiz-steps{display:flex;gap:0;margin-bottom:20px}
+.wiz-step{flex:1;text-align:center;padding:8px 0;font-size:10px;font-weight:600;color:var(--dim);border-bottom:2px solid var(--border);cursor:pointer}
+.wiz-step.done{color:var(--green);border-color:var(--green)}
+.wiz-step.active{color:var(--accent);border-color:var(--accent)}
+.wiz-card{padding:20px;margin-bottom:12px}
+.wiz-card label{display:block;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;margin-top:12px}
+.wiz-card label:first-child{margin-top:0}
+.wiz-opt{display:flex;gap:8px;margin-top:6px}
+.wiz-opt-item{flex:1;padding:14px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);cursor:pointer;text-align:center;transition:all .12s}
+.wiz-opt-item:hover{border-color:var(--ab)}
+.wiz-opt-item.selected{border-color:var(--accent);background:var(--as)}
+.wiz-opt-item .icon{font-size:22px;margin-bottom:4px}
+.wiz-opt-item .name{font-size:11px;font-weight:600}
+.wiz-opt-item .desc{font-size:9px;color:var(--muted);margin-top:2px}
+
+/* ═══ PLAN REVIEW ═══ */
+.plan{flex:1;display:flex;overflow:hidden}
+.plan-l{flex:1;overflow-y:auto;padding:16px}
+.plan-r{width:260px;border-left:1px solid var(--border);overflow-y:auto;padding:14px;background:var(--sidebar)}
+.plan-task{display:flex;gap:8px;padding:8px 10px;margin-bottom:3px;cursor:pointer;transition:border-color .12s}
+.plan-task:hover{border-color:var(--ab)}
+.plan-num{width:20px;height:20px;background:var(--card2);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted);flex-shrink:0}
+.plan-task-body{flex:1;min-width:0}
+.plan-task-name{font-size:11px;font-weight:600}
+.plan-task-dep{font-size:9px;color:var(--dim);margin-top:1px}
+.plan-task-badges{display:flex;gap:3px;margin-top:4px}
+.plan-warn{display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--ys);border:1px solid var(--yb);border-radius:var(--rs);font-size:9px;color:var(--yellow);margin-bottom:3px}
+.plan-stat{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px}
+.plan-stat-item{padding:8px;text-align:center}
+.plan-stat-item .v{font-size:16px;font-weight:700}
+.plan-stat-item .l{font-size:8px;color:var(--muted);text-transform:uppercase}
+
+/* ═══ RUNS ═══ */
+.runs{flex:1;overflow-y:auto;padding:20px 24px}
+.run-card{display:flex;gap:10px;padding:12px 14px;margin-bottom:4px;cursor:pointer;transition:border-color .12s}
+.run-card:hover{border-color:var(--ab)}
+.run-status{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.run-body{flex:1;min-width:0}
+.run-title{font-size:12px;font-weight:600}
+.run-meta{font-size:10px;color:var(--muted);margin-top:2px}
+.run-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.run-time{font-size:9px;color:var(--dim);font-family:var(--m)}
+
+/* ═══ SKILLS & MEMORY ═══ */
+.sm{flex:1;display:flex;overflow:hidden}
+.sm-panel{flex:1;overflow-y:auto;padding:18px}
+.sm-divider{width:1px;background:var(--border)}
+.skill-card{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:4px;transition:border-color .12s;cursor:pointer}
+.skill-card:hover{border-color:var(--ab)}
+.skill-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.skill-name{font-size:11px;font-weight:600}
+.skill-desc{font-size:9px;color:var(--muted);margin-top:1px}
+.mem-file{display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:var(--rs);cursor:pointer;font-size:10px;color:var(--muted)}
+.mem-file:hover{background:var(--card);color:var(--text)}
+.mem-file.active{background:var(--as);color:var(--accent)}
+
+/* ═══ CHECKPOINT PIN ═══ */
+.cp-pin{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--border);padding:12px 18px;display:flex;gap:5px;z-index:10}
+.cp-pin button{padding:9px 14px;border-radius:var(--rs);font-size:11px;font-weight:600;cursor:pointer;border:none;flex:1}
+
+/* Soul editor */
+.soul-ed{width:100%;min-height:160px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:10px;color:var(--text);font-family:var(--m);font-size:10px;line-height:1.5;resize:vertical;outline:none}
+.soul-ed:focus{border-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ═══ SIDEBAR ═══ -->
+  <div class="sb">
+    <div class="sb-ws" onclick="go('dash')">
+      <div class="sb-ws-name">⚡ LuxeLab Workspace ▾</div>
+      <div class="sb-ws-env">🟢 Local + Gateway</div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-label">Workspace</div>
+      <div class="sb-item active" onclick="go('dash')"><span class="icon">📂</span>Projects<span class="count count-m">3</span></div>
+      <div class="sb-item" onclick="go('queue')"><span class="icon">✅</span>Review Queue<span class="count count-r">4</span></div>
+      <div class="sb-item" onclick="go('runs')"><span class="icon">▶️</span>Runs / Console<span class="count count-m">2</span></div>
+      <div class="sb-item" onclick="go('agents')"><span class="icon">🤖</span>Agents<span class="count count-m">6</span></div>
+      <div class="sb-item" onclick="go('skills')"><span class="icon">🧩</span>Skills & Memory</div>
+      <div class="sb-item" onclick="go('teams')"><span class="icon">👥</span>Teams & Roles</div>
+
+      <div class="sb-label">Projects</div>
+      <div class="sb-item sb-proj" onclick="go('project')"><span class="icon">🔧</span>ClawSuite<span class="badge b-a" style="margin-left:auto;font-size:8px">72%</span></div>
+      <div class="sb-item sb-proj"><span class="icon">💎</span>LuxeLab OS<span class="badge b-y" style="margin-left:auto;font-size:8px">55%</span></div>
+      <div class="sb-item sb-proj"><span class="icon">🌐</span>Client Portal<span class="badge b-g" style="margin-left:auto;font-size:8px">done</span></div>
+
+      <div class="sb-label">System</div>
+      <div class="sb-item"><span class="icon">⚙️</span>Settings</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="topbar-search"><input placeholder="🔍 Search projects, tasks, checkpoints, agents..."></div>
+      <div class="topbar-right">
+        <div class="topbar-btn" onclick="toggleTheme()" title="Toggle light/dark" id="theme-btn">🌙</div>
+        <div class="topbar-btn">🔔<span class="dot"></span></div>
+        <div class="topbar-btn">⚙️</div>
+        <div class="topbar-avatar">E</div>
+      </div>
+    </div>
+
+    <!-- ═══ S1: PROJECTS DASHBOARD ═══ -->
+    <div id="s-dash" class="screen active">
+      <div class="scr-scroll">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h1 style="font-size:16px;font-weight:700">Projects</h1>
+          <button class="btn btn-p" style="font-size:10px;padding:5px 12px" onclick="go('wizard')">+ New Project</button>
+        </div>
+
+        <!-- KPI -->
+        <div class="kpi-row" style="grid-template-columns:repeat(6,1fr)">
+          <div class="kpi card"><div class="v" style="color:var(--accent)">3</div><div class="l">Projects</div></div>
+          <div class="kpi card"><div class="v" style="color:var(--green)">6<span style="font-size:12px;color:var(--muted)">/8</span></div><div class="l">Agents Online</div></div>
+          <div class="kpi card"><div class="v" style="color:var(--blue)">2<span style="font-size:12px;color:var(--muted)"> / 3 / 1</span></div><div class="l">Running / Queued / Paused</div></div>
+          <div class="kpi card"><div class="v" style="color:var(--red)">4</div><div class="l">Checkpoints Pending</div></div>
+          <div class="kpi card"><div class="v" style="color:var(--yellow)">2</div><div class="l">Policy Alerts</div><div class="sub" style="color:var(--yellow)">Missing checks</div></div>
+          <div class="kpi card"><div class="v" style="color:var(--green)">$0.00</div><div class="l">Cost Today</div></div>
+        </div>
+
+        <!-- Project Cards -->
+        <div class="proj-grid">
+          <div class="pc card" onclick="go('project')">
+            <div class="pc-hdr"><div class="pc-icon" style="background:var(--as)">🔧</div><div><div class="pc-name">ClawSuite</div><div class="pc-path">~/clawsuite</div></div><span class="badge b-g" style="margin-left:auto">active</span></div>
+            <div class="pc-phase">Phase 3: Orchestrator · Mission 3/5</div>
+            <div class="pc-bar"><div class="pc-bar-f" style="width:72%;background:linear-gradient(90deg,var(--accent),var(--green))"></div></div>
+            <div class="pc-meta"><span>72%</span><span class="badge b-r" style="font-size:9px">1 checkpoint</span></div>
+            <div class="pc-gates"><span class="badge b-b" style="font-size:8px">tsc ✅</span><span class="badge b-y" style="font-size:8px">tests req</span><span class="badge b-m" style="font-size:8px">PR mode</span></div>
+            <div class="agent-pills"><div class="agent-pill"><span class="adot" style="background:var(--green)"></span>Codex</div><div class="agent-pill"><span class="adot" style="background:var(--purple)"></span>Claude</div><div class="agent-pill"><span class="adot" style="background:var(--blue)"></span>QA</div></div>
+            <div class="pc-btns"><button class="btn btn-p" onclick="event.stopPropagation();go('mission')">▶ Resume</button><button class="btn">View</button></div>
+          </div>
+
+          <div class="pc card">
+            <div class="pc-hdr"><div class="pc-icon" style="background:var(--ps)">💎</div><div><div class="pc-name">LuxeLab OS</div><div class="pc-path">~/luxelab-os</div></div><span class="badge b-y" style="margin-left:auto">paused</span></div>
+            <div class="pc-phase">Phase 1: Messages Pro · Webview migration</div>
+            <div class="pc-bar"><div class="pc-bar-f" style="width:55%;background:var(--purple)"></div></div>
+            <div class="pc-meta"><span>55%</span><span class="badge b-r" style="font-size:9px">3 checkpoints</span></div>
+            <div class="pc-gates"><span class="badge b-b" style="font-size:8px">tsc ✅</span><span class="badge b-m" style="font-size:8px">commit mode</span></div>
+            <div class="agent-pills"><div class="agent-pill"><span class="adot" style="background:var(--green)"></span>Codex</div><div class="agent-pill"><span class="adot" style="background:var(--purple)"></span>Claude</div></div>
+            <div class="pc-btns"><button class="btn btn-p">▶ Resume</button><button class="btn">View</button></div>
+          </div>
+
+          <div class="pc card">
+            <div class="pc-hdr"><div class="pc-icon" style="background:var(--gs)">🌐</div><div><div class="pc-name">Client Portal</div><div class="pc-path">~/client-portal</div></div><span class="badge b-g" style="margin-left:auto">done</span></div>
+            <div class="pc-phase">Phase 3: Auth · Complete</div>
+            <div class="pc-bar"><div class="pc-bar-f" style="width:100%;background:var(--green)"></div></div>
+            <div class="pc-meta"><span>100%</span><span>PR #12 ready</span></div>
+            <div class="pc-gates"><span class="badge b-g" style="font-size:8px">all checks ✅</span></div>
+            <div class="agent-pills"><div class="agent-pill"><span class="adot" style="background:var(--dim)"></span>Codex</div></div>
+            <div class="pc-btns"><button class="btn">📊 Report</button><button class="btn">View</button></div>
+          </div>
+        </div>
+
+        <!-- Agent Capacity -->
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
+        <div>
+        <!-- Inbox -->
+        <div class="inbox">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="sec" style="margin:0">Review Inbox (4)</div><button class="btn btn-s" style="padding:4px 10px;font-size:10px;font-weight:700">✅ Approve all verified (3)</button></div>
+          <div class="inbox-bar">
+            <span class="inbox-filter active">All</span><span class="inbox-filter">ClawSuite</span><span class="inbox-filter">LuxeLab</span>
+            <span style="margin-left:auto"></span>
+            <span class="inbox-filter">Verified ✅</span><span class="inbox-filter">Missing ⚠️</span><span class="inbox-filter">High risk 🔥</span>
+          </div>
+          <div class="card">
+            <div class="inbox-row" onclick="go('checkpoint')">
+              <span class="inbox-proj" style="background:var(--as);color:var(--accent)">ClawSuite</span>
+              <span class="inbox-task">T3: Auth API Routes</span>
+              <span class="inbox-pills"><span class="badge b-b" style="font-size:8px">API</span><span class="badge b-r" style="font-size:8px">AUTH 🔥</span><span class="badge b-g" style="font-size:8px">Verified ✅</span></span>
+              <span class="inbox-acts"><button class="btn btn-s" style="padding:2px 6px;font-size:9px">Approve</button><button class="btn" style="padding:2px 6px;font-size:9px">Review</button></span>
+              <span class="inbox-time">2m</span>
+            </div>
+            <div class="inbox-row">
+              <span class="inbox-proj" style="background:var(--ps);color:var(--purple)">LuxeLab</span>
+              <span class="inbox-task">T7: Webview migration</span>
+              <span class="inbox-pills"><span class="badge b-b" style="font-size:8px">UI</span><span class="badge b-g" style="font-size:8px">Low</span><span class="badge b-g" style="font-size:8px">Verified ✅</span></span>
+              <span class="inbox-acts"><button class="btn btn-s" style="padding:2px 6px;font-size:9px">Approve</button><button class="btn" style="padding:2px 6px;font-size:9px">Review</button></span>
+              <span class="inbox-time">14m</span>
+            </div>
+            <div class="inbox-row">
+              <span class="inbox-proj" style="background:var(--ps);color:var(--purple)">LuxeLab</span>
+              <span class="inbox-task">T8: CSS injection fix</span>
+              <span class="inbox-pills"><span class="badge b-b" style="font-size:8px">UI</span><span class="badge b-g" style="font-size:8px">Low</span><span class="badge b-y" style="font-size:8px">Missing ⚠️</span></span>
+              <span class="inbox-acts"><button class="btn btn-s" style="padding:2px 6px;font-size:9px">Approve</button><button class="btn" style="padding:2px 6px;font-size:9px">Review</button></span>
+              <span class="inbox-time">18m</span>
+            </div>
+            <div class="inbox-row">
+              <span class="inbox-proj" style="background:var(--ps);color:var(--purple)">LuxeLab</span>
+              <span class="inbox-task">T9: Creator avatar photos</span>
+              <span class="inbox-pills"><span class="badge b-b" style="font-size:8px">API</span><span class="badge b-g" style="font-size:8px">Low</span><span class="badge b-g" style="font-size:8px">Verified ✅</span></span>
+              <span class="inbox-acts"><button class="btn btn-s" style="padding:2px 6px;font-size:9px">Approve</button><button class="btn" style="padding:2px 6px;font-size:9px">Review</button></span>
+              <span class="inbox-time">22m</span>
+            </div>
+          </div>
+        </div>
+        </div>
+        <div>
+        <div class="sec">Agent Capacity</div>
+        <div class="card" style="padding:12px">
+          <div class="cap-row"><span class="cap-name">🤖 Codex</span><div class="cap-bar"><div class="cap-bar-f" style="width:50%;background:var(--green)"></div></div><span class="cap-text" style="color:var(--green)">1/2</span></div>
+          <div class="cap-row"><span class="cap-name">🧠 Claude</span><div class="cap-bar"><div class="cap-bar-f" style="width:100%;background:var(--accent)"></div></div><span class="cap-text" style="color:var(--accent)">1/1</span></div>
+          <div class="cap-row"><span class="cap-name">🦙 Ollama</span><div class="cap-bar"><div class="cap-bar-f" style="width:0%"></div></div><span class="cap-text">0/2</span></div>
+          <div class="cap-row"><span class="cap-name">🔍 QA Agent</span><div class="cap-bar"><div class="cap-bar-f" style="width:50%;background:var(--green)"></div></div><span class="cap-text" style="color:var(--green)">1/2</span></div>
+          <div style="border-top:1px solid var(--border-s);margin-top:6px;padding-top:6px;font-size:10px;color:var(--muted)">Queue depth: <strong style="color:var(--text)">3 tasks</strong></div>
+        </div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ S2: PROJECT DETAIL ═══ -->
+    <div id="s-project" class="screen">
+      <div class="pd">
+        <div class="pd-side">
+          <div class="pd-back" onclick="go('dash')">← All Projects</div>
+          <div class="pd-name">🔧 ClawSuite</div>
+          <div class="pd-path">~/clawsuite · feature/orchestrator</div>
+          <div class="sec">Roadmap</div>
+          <div class="ph"><div class="ph-h"><span style="font-size:11px">✅</span><span class="ph-n">Phase 1: Core Chat</span><span class="badge b-g" style="font-size:8px">done</span></div><div class="ml"><div class="mi">✅ Gateway</div><div class="mi">✅ Chat UI</div><div class="mi">✅ SSE</div></div></div>
+          <div class="ph"><div class="ph-h"><span style="font-size:11px">✅</span><span class="ph-n">Phase 2: Agent Hub</span><span class="badge b-g" style="font-size:8px">done</span></div><div class="ml"><div class="mi">✅ Office</div><div class="mi">✅ Config</div><div class="mi">✅ Console</div></div></div>
+          <div class="ph"><div class="ph-h active"><span style="font-size:11px">🟢</span><span class="ph-n">Phase 3: Orchestrator</span><span class="badge b-a" style="font-size:8px">72%</span></div><div class="ml"><div class="mi">✅ Task Engine</div><div class="mi">✅ Agent Runner</div><div class="mi active" onclick="go('mission')">⏳ Checkpoint UI</div><div class="mi">📋 Visual Diffs</div><div class="mi">📋 Reports</div></div></div>
+          <div class="ph"><div class="ph-h"><span style="font-size:11px">📋</span><span class="ph-n">Phase 4: Standalone</span><span class="badge b-m" style="font-size:8px">planned</span></div></div>
+          <div style="margin-top:12px;display:flex;gap:4px"><button class="btn btn-p" style="flex:1;font-size:10px;padding:5px" onclick="go('mission')">▶ Resume</button><button class="btn" style="flex:1;font-size:10px;padding:5px" onclick="go('planreview')">🎯 New Mission</button></div>
+        </div>
+        <div class="pd-main">
+          <!-- Spec -->
+          <div class="card" style="padding:14px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="sec" style="margin:0">Spec / PRD</span><button class="btn" style="padding:2px 8px;font-size:9px">✏️ Edit</button></div><div style="font-size:11px;line-height:1.5;color:var(--muted)">Desktop app for AI agent orchestration. Users create projects, define roadmaps, launch missions with multiple agents working in parallel, and review checkpoints before changes are committed.</div></div>
+
+          <div class="pd-3">
+            <!-- Open Checkpoints -->
+            <div class="card" style="padding:12px"><div class="sec">Open Checkpoints</div>
+              <div style="display:flex;align-items:center;gap:6px;padding:5px 0;font-size:10px;border-bottom:1px solid var(--border-s)"><span class="badge b-r" style="font-size:8px">AUTH 🔥</span><span style="flex:1">T3: Auth API</span><button class="btn btn-s" style="padding:1px 6px;font-size:8px">Approve</button></div>
+              <div style="padding:5px 0;font-size:10px;color:var(--muted);text-align:center;margin-top:6px">1 pending</div>
+            </div>
+            <!-- Next Up -->
+            <div class="card" style="padding:12px"><div class="sec">Next Up</div>
+              <div style="font-size:10px;padding:3px 0;color:var(--muted)">⏸ T5: JWT middleware</div>
+              <div style="font-size:10px;padding:3px 0;color:var(--muted)">⏸ T6: Protected routes</div>
+              <div style="font-size:10px;padding:3px 0;color:var(--muted)">⏸ T7: Tests</div>
+              <div style="font-size:10px;padding:3px 0;color:var(--muted)">⏸ T8: Docs</div>
+            </div>
+            <!-- Agent Squad -->
+            <div class="card" style="padding:12px"><div class="sec">Agent Squad</div>
+              <div style="display:flex;align-items:center;gap:5px;padding:4px 0;font-size:10px"><span class="adot" style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block"></span>Codex <span style="color:var(--dim);margin-left:auto">T4</span></div>
+              <div style="display:flex;align-items:center;gap:5px;padding:4px 0;font-size:10px"><span class="adot" style="width:5px;height:5px;border-radius:50%;background:var(--purple);display:inline-block"></span>Claude <span style="color:var(--dim);margin-left:auto">T3</span></div>
+              <div style="display:flex;align-items:center;gap:5px;padding:4px 0;font-size:10px"><span class="adot" style="width:5px;height:5px;border-radius:50%;background:var(--blue);display:inline-block"></span>QA Agent <span style="color:var(--dim);margin-left:auto">idle</span></div>
+            </div>
+          </div>
+
+          <!-- Active Mission -->
+          <div class="card" style="padding:14px;margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><div style="font-size:12px;font-weight:700">Mission 3: Checkpoint UI</div><div style="font-size:10px;color:var(--muted);margin-top:1px">8 tasks · 3 agents · Est. 35m</div></div><button class="btn btn-p" style="font-size:10px;padding:5px 12px" onclick="go('mission')">▶ View</button></div>
+            <div class="pc-bar"><div class="pc-bar-f" style="width:38%;background:linear-gradient(90deg,var(--accent),var(--green))"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:3px"><span>38% · 3/8</span><span>⏱ 12:34 · $0.00</span></div>
+          </div>
+
+          <!-- Policies + Health + Git -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div class="pd-policy card"><div class="sec">Project Policies</div>
+              <div class="pd-policy-row"><span>Branch</span><span style="color:var(--accent)">per-mission</span></div>
+              <div class="pd-policy-row"><span>Approval</span><span style="color:var(--blue)">PR mode</span></div>
+              <div class="pd-policy-row"><span>Required</span><span style="color:var(--green)">tsc, tests</span></div>
+              <div class="pd-policy-row"><span>Shell</span><span style="color:var(--green)">✅</span></div>
+              <div class="pd-policy-row"><span>Network</span><span style="color:var(--red)">❌</span></div>
+            </div>
+            <div class="card" style="padding:12px"><div class="sec">Health</div>
+              <div style="font-size:10px;padding:4px 0;color:var(--green)">✅ Last tsc: passed (2m ago)</div>
+              <div style="font-size:10px;padding:4px 0;color:var(--green)">✅ Tests: 12/12 passing</div>
+              <div style="font-size:10px;padding:4px 0;color:var(--muted)">⚪ e2e: not configured</div>
+              <div style="font-size:10px;padding:4px 0;color:var(--yellow)">⚠️ lint: 3 warnings</div>
+            </div>
+            <div class="card" style="padding:12px"><div class="sec">Git</div>
+              <div style="font-size:10px;color:var(--muted);line-height:1.8">Branch: <code style="color:var(--accent)">feature/orchestrator</code><br>Commit: <code style="color:var(--dim)">8e8ebc2</code><br>PRs: <span style="color:var(--green)">#33 ✓</span> <span style="color:var(--yellow)">#34 draft</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ S3: REVIEW QUEUE ═══ -->
+    <div id="s-queue" class="screen">
+      <div class="rq">
+        <h1>Review Queue</h1>
+        <div class="sub">4 checkpoints across 2 projects · <kbd style="padding:1px 4px;border-radius:2px;background:var(--card2);border:1px solid var(--border);font-family:var(--m);font-size:9px">A</kbd> approve <kbd style="padding:1px 4px;border-radius:2px;background:var(--card2);border:1px solid var(--border);font-family:var(--m);font-size:9px">R</kbd> revise <kbd style="padding:1px 4px;border-radius:2px;background:var(--card2);border:1px solid var(--border);font-family:var(--m);font-size:9px">X</kbd> reject <kbd style="padding:1px 4px;border-radius:2px;background:var(--card2);border:1px solid var(--border);font-family:var(--m);font-size:9px">J/K</kbd> nav</div>
+        <div class="rq-filters">
+          <span class="inbox-filter active">All</span><span class="inbox-filter">ClawSuite</span><span class="inbox-filter">LuxeLab</span>
+          <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
+          <span class="inbox-filter">Verified ✅</span><span class="inbox-filter">Missing ⚠️</span><span class="inbox-filter">High risk 🔥</span>
+          <span style="margin-left:auto"></span>
+          <select class="input" style="width:110px;padding:4px 6px;font-size:9px"><option>Newest first</option><option>Oldest first</option><option>Highest risk</option></select>
+        </div>
+
+        <div class="rq-item card" onclick="go('checkpoint')" style="border-left:3px solid var(--red)">
+          <div class="rq-left"><div class="rq-proj" style="color:var(--accent)">🔧 ClawSuite · Phase 3 · Mission 3</div><div class="rq-task">Task 3: Auth API Routes</div><div class="rq-sum">4 files added. JWT auth + bcrypt + refresh tokens.</div><div class="rq-scope" style="margin-top:4px"><span class="badge b-b" style="font-size:8px">API</span><span class="badge b-r" style="font-size:8px">AUTH 🔥 High</span></div></div>
+          <div class="rq-right"><span class="rq-time">2m ago</span><span class="badge b-p">Claude</span><span class="badge b-g" style="font-size:8px">Verified ✅</span><div class="rq-acts"><button class="btn btn-s">Approve</button><button class="btn">Revise</button><button class="btn btn-d">Reject</button></div></div>
+        </div>
+
+        <div class="rq-item card">
+          <div class="rq-left"><div class="rq-proj" style="color:var(--purple)">💎 LuxeLab · Phase 1 · Webview Migration</div><div class="rq-task">Task 7: BrowserView → Webview tag</div><div class="rq-sum">Replaced BrowserView. Sidebar gap fixed all window sizes.</div><div class="rq-scope" style="margin-top:4px"><span class="badge b-b" style="font-size:8px">UI</span><span class="badge b-g" style="font-size:8px">Low</span></div></div>
+          <div class="rq-right"><span class="rq-time">14m ago</span><span class="badge b-g">Codex</span><span class="badge b-g" style="font-size:8px">Verified ✅</span><div class="rq-acts"><button class="btn btn-s">Approve</button><button class="btn">Revise</button><button class="btn btn-d">Reject</button></div></div>
+        </div>
+
+        <div class="rq-item card" style="border-left:3px solid var(--yellow)">
+          <div class="rq-left"><div class="rq-proj" style="color:var(--purple)">💎 LuxeLab · Phase 1 · Webview Migration</div><div class="rq-task">Task 8: CSS injection sidebar gap</div><div class="rq-sum">Fixed DPR coordinate drift with CSS layout.</div><div class="rq-scope" style="margin-top:4px"><span class="badge b-b" style="font-size:8px">UI</span><span class="badge b-g" style="font-size:8px">Low</span></div></div>
+          <div class="rq-right"><span class="rq-time">18m ago</span><span class="badge b-g">Codex</span><span class="badge b-y" style="font-size:8px">Missing ⚠️</span><div class="rq-acts"><button class="btn btn-s">Approve</button><button class="btn">Revise</button><button class="btn btn-d">Reject</button></div></div>
+        </div>
+
+        <div class="rq-item card">
+          <div class="rq-left"><div class="rq-proj" style="color:var(--purple)">💎 LuxeLab · Phase 1 · UI Polish</div><div class="rq-task">Task 9: Creator avatar photos</div><div class="rq-sum">Wired OF API avatar URLs. Fallback to initials.</div><div class="rq-scope" style="margin-top:4px"><span class="badge b-b" style="font-size:8px">API</span><span class="badge b-g" style="font-size:8px">Low</span></div></div>
+          <div class="rq-right"><span class="rq-time">22m ago</span><span class="badge b-p">Claude</span><span class="badge b-g" style="font-size:8px">Verified ✅</span><div class="rq-acts"><button class="btn btn-s">Approve</button><button class="btn">Revise</button><button class="btn btn-d">Reject</button></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ S4: MISSION CONTROL ═══ -->
+    <div id="s-mission" class="screen">
+      <div style="padding:6px 12px;border-bottom:1px solid var(--border);background:var(--panel);display:flex;align-items:center;gap:6px;font-size:10px">
+        <span style="cursor:pointer;color:var(--muted)" onclick="go('dash')">Projects</span><span style="color:var(--dim)">›</span><span style="cursor:pointer;color:var(--muted)" onclick="go('project')">ClawSuite</span><span style="color:var(--dim)">›</span><span style="font-weight:600">Mission 3: Checkpoint UI</span>
+      </div>
+      <!-- Run Plan -->
+      <div class="mc-plan">
+        <div class="mc-plan-item">📋 <strong>Agents:</strong> Codex(T1,2,4,6) Claude(T3,5,7) Ollama(T8)</div>
+        <div class="mc-plan-item">⏱ <strong>Est:</strong> ~35min</div>
+        <div class="mc-plan-item">✅ <strong>Checks:</strong> tsc, tests</div>
+        <div class="mc-plan-item">🔀 <strong>Mode:</strong> PR on completion</div>
+        <div class="mc-plan-item" style="margin-left:auto"><button class="btn" style="padding:2px 8px;font-size:9px">⏸ Pause All</button></div>
+      </div>
+      <div class="mc">
+        <div class="mc-l">
+          <div class="mc-l-hdr">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:700">Tasks</span><span style="font-size:10px;color:var(--muted)">⏱ 12:34</span></div>
+            <div class="mc-bar"><div class="mc-bar-f" style="width:38%"></div></div>
+            <div class="mc-bar-t"><span>38%</span><span>3/8</span></div>
+          </div>
+          <div class="mc-tasks">
+            <div class="mc-t"><span>✅</span><span style="flex:1">1. Setup</span></div>
+            <div class="mc-t"><span>✅</span><span style="flex:1">2. DB Schema</span></div>
+            <div class="mc-t active"><span>⏳</span><span style="flex:1">3. Auth API</span><span style="font-size:9px;color:var(--accent);font-weight:600">45%</span></div>
+            <div class="mc-t"><span>⏳</span><span style="flex:1">4. Login UI</span><span style="font-size:9px;color:var(--accent);font-weight:600">60%</span></div>
+            <div class="mc-t"><span>⏸️</span><span style="flex:1;color:var(--dim)">5. JWT</span><span style="font-size:8px;color:var(--dim)">wait</span></div>
+            <div class="mc-t"><span>⏸️</span><span style="flex:1;color:var(--dim)">6. Routes</span><span style="font-size:8px;color:var(--dim)">wait</span></div>
+            <div class="mc-t"><span>⏸️</span><span style="flex:1;color:var(--dim)">7. Tests</span><span style="font-size:8px;color:var(--dim)">wait</span></div>
+            <div class="mc-t"><span>⏸️</span><span style="flex:1;color:var(--dim)">8. Docs</span><span style="font-size:8px;color:var(--dim)">wait</span></div>
+          </div>
+        </div>
+        <div class="mc-r">
+          <div class="mc-terms">
+            <div class="term card">
+              <div class="term-h"><div class="term-h-l"><span class="dot" style="background:var(--green)"></span><span class="n">Codex</span><span class="t">→ T4: Login UI</span></div><div class="term-a"><button>💬</button><button>📁</button><button>⏸</button></div></div>
+              <div class="term-b"><div class="cmd">$ npm install react-hook-form zod</div><div class="dim">added 3 packages in 2.1s</div><br><div class="info">Reading src/pages/...</div><div class="file">Creating src/pages/LoginPage.tsx</div><div class="done">✅ LoginPage.tsx (82 lines)</div><br><div class="file">Creating RegisterPage.tsx<span class="cursor"></span></div></div>
+            </div>
+            <div class="term card">
+              <div class="term-h"><div class="term-h-l"><span class="dot" style="background:var(--purple)"></span><span class="n">Claude</span><span class="t">→ T3: Auth API</span></div><div class="term-a"><button>💬</button><button>📁</button><button>⏸</button></div></div>
+              <div class="term-b"><div class="info">Analyzing src/api/...</div><div class="file">Routes: POST /login, /register, GET /me</div><br><div class="file">Creating login.ts</div><div class="done">✅ login.ts (48 lines)</div><br><div class="file">Creating register.ts<span class="cursor"></span></div></div>
+            </div>
+          </div>
+          <div class="mc-evt">
+            <div class="evt-i"><span class="evt-t">19:41</span><span class="evt-type" style="background:var(--gs);color:var(--green)">done</span>Task 2 complete (Codex, 4m)</div>
+            <div class="evt-i"><span class="evt-t">19:41</span><span class="evt-type" style="background:var(--bs);color:var(--blue)">start</span>T3→Claude · T4→Codex</div>
+            <div class="evt-i"><span class="evt-t">19:37</span><span class="evt-type" style="background:var(--gs);color:var(--green)">done</span>Task 1 complete (Codex, 2m 48s)</div>
+            <div class="evt-i"><span class="evt-t">19:34</span><span class="evt-type" style="background:var(--as);color:var(--accent)">launch</span>Mission started</div>
+          </div>
+        </div>
+        <!-- Policy Drawer -->
+        <div class="mc-drawer">
+          <div class="sec">Controls</div>
+          <div class="drawer-row"><span>Concurrency</span><span style="color:var(--accent)">2 max</span></div>
+          <div class="drawer-row"><span>Checkpoint limit</span><span style="color:var(--accent)">10</span></div>
+          <div class="sec" style="margin-top:10px">Required Checks</div>
+          <div class="drawer-row"><span>tsc</span><div class="toggle on"></div></div>
+          <div class="drawer-row"><span>tests</span><div class="toggle on"></div></div>
+          <div class="drawer-row"><span>lint</span><div class="toggle"></div></div>
+          <div class="drawer-row"><span>e2e</span><div class="toggle"></div></div>
+          <div class="sec" style="margin-top:10px">Allowed Tools</div>
+          <div class="drawer-row"><span>Git</span><div class="toggle on"></div></div>
+          <div class="drawer-row"><span>Shell</span><div class="toggle on"></div></div>
+          <div class="drawer-row"><span>Browser</span><div class="toggle"></div></div>
+          <div class="drawer-row"><span>Network</span><div class="toggle"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ S5: CHECKPOINT ═══ -->
+    <div id="s-checkpoint" class="screen">
+      <div class="cp">
+        <div class="cp-in">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;cursor:pointer" onclick="go('mission')">← Mission Control</div>
+          <div class="cp-card card">
+            <div class="cp-hdr">
+              <h2>🚦 Checkpoint: Task 3 — Auth API Routes</h2>
+              <div class="cp-hdr-m"><span>🤖 Claude Sonnet</span><span>⏱ 7m 42s</span><span>📊 12.4k tok</span><span style="color:var(--green)">💰 $0.00</span><span class="badge b-a">ClawSuite</span></div>
+            </div>
+            <div class="cp-body">
+              <div class="cp-s"><div class="sec">Summary</div><p style="font-size:11px;line-height:1.5">Created REST API auth routes with JWT authentication. 4 endpoints with validation, bcrypt hashing, and refresh token rotation.</p></div>
+
+              <!-- Policy Warnings -->
+              <div class="cp-s">
+                <div class="pw">🔒 Changes touch <strong>auth/security</strong> — requires explicit review</div>
+                <div class="pw">📦 New dependency added: <strong>bcrypt@5.1.1</strong></div>
+              </div>
+
+              <!-- Before/After -->
+              <div class="cp-s"><div class="sec">Visual Changes</div>
+                <div class="cp-vis">
+                  <div class="cp-vis-p"><div class="cp-vis-l">Before</div><div class="cp-vis-img">📸 No /api/auth routes</div><span class="cp-vis-link">🔗 Open before state</span></div>
+                  <div class="cp-vis-p" style="border-color:var(--gb)"><div class="cp-vis-l" style="background:var(--gs);color:var(--green)">After</div><div class="cp-vis-img"><span style="color:var(--green)">4 endpoints responding ✅</span></div><span class="cp-vis-link">🔗 Open current state</span></div>
+                </div>
+              </div>
+
+              <!-- Verification Matrix -->
+              <div class="cp-s"><div class="sec">Verification</div>
+                <div class="vmatrix">
+                  <div class="vm-item pass">✅ tsc --noEmit</div>
+                  <div class="vm-item warn">⚠️ tests — not run</div>
+                  <div class="vm-item pass">✅ lint — 0 errors</div>
+                  <div class="vm-item na">⚪ e2e — not configured</div>
+                </div>
+                <button class="btn" style="margin-top:6px;padding:4px 10px;font-size:9px">▶ Run missing checks</button>
+              </div>
+
+              <!-- Files -->
+              <div class="cp-s"><div class="sec">Files Changed</div>
+                <div class="cp-file"><div class="cp-fl"><span class="cp-fb a">A</span><span class="cp-fn">src/api/auth/login.ts</span></div><div class="cp-fr"><span style="color:var(--green)">+48</span><span style="color:var(--blue);cursor:pointer">Diff ▾</span></div></div>
+                <!-- Inline diff -->
+                <div class="diff-panel">
+                  <div class="diff-ctx">  import { sign, verify } from 'jsonwebtoken'</div>
+                  <div class="diff-add">+ import { hash, compare } from 'bcrypt'</div>
+                  <div class="diff-ctx">  </div>
+                  <div class="diff-add">+ export async function login(req, res) {</div>
+                  <div class="diff-add">+   const { email, password } = req.body</div>
+                  <div class="diff-add">+   const user = await db.users.findByEmail(email)</div>
+                  <div class="diff-add">+   if (!user || !await compare(password, user.hash))</div>
+                  <div class="diff-add">+     return res.status(401).json({ error: 'Invalid' })</div>
+                  <div class="diff-add">+   const token = sign({ id: user.id }, SECRET)</div>
+                  <div class="diff-add">+   return res.json({ token, refresh: ... })</div>
+                  <div class="diff-add">+ }</div>
+                </div>
+                <div class="cp-file"><div class="cp-fl"><span class="cp-fb a">A</span><span class="cp-fn">src/api/auth/register.ts</span></div><div class="cp-fr"><span style="color:var(--green)">+62</span><span style="color:var(--blue);cursor:pointer">Diff</span></div></div>
+                <div class="cp-file"><div class="cp-fl"><span class="cp-fb a">A</span><span class="cp-fn">src/api/auth/me.ts</span></div><div class="cp-fr"><span style="color:var(--green)">+24</span><span style="color:var(--blue);cursor:pointer">Diff</span></div></div>
+                <div class="cp-file"><div class="cp-fl"><span class="cp-fb m">M</span><span class="cp-fn">src/api/index.ts</span></div><div class="cp-fr"><span style="color:var(--green)">+6</span><span style="color:var(--blue);cursor:pointer">Diff</span></div></div>
+              </div>
+
+              <div class="cp-s"><div class="sec">Unblocks</div><div style="padding:6px 8px;background:var(--bs);border:1px solid var(--bb);border-radius:var(--rs);font-size:10px;color:var(--blue);line-height:1.6">→ Task 5: JWT middleware · → Task 7: Tests</div></div>
+
+              <div class="cp-s"><div class="sec">Notes</div><textarea class="input" style="height:40px;resize:none;font-size:10px" placeholder="Feedback for agent..."></textarea></div>
+
+              <!-- Revise panel (demo) -->
+              <div class="revise-panel" style="margin-top:10px">
+                <div style="font-size:11px;font-weight:700;margin-bottom:6px">🔄 Revise Instructions</div>
+                <label>What to change *</label>
+                <textarea class="input" style="height:36px;resize:none;font-size:10px" placeholder="Describe what the agent should change..."></textarea>
+                <label>Constraints</label>
+                <input class="input" style="font-size:10px" placeholder="e.g., Don't change the DB schema">
+                <label>Acceptance test</label>
+                <input class="input" style="font-size:10px" placeholder="e.g., POST /login returns 200 with valid creds">
+                <button class="btn btn-p" style="margin-top:8px;font-size:10px;padding:5px 12px">Send Revision</button>
+              </div>
+            </div>
+          </div>
+          <!-- Pinned action bar -->
+          <div class="cp-pin">
+            <button style="background:var(--green);color:#fff" onclick="go('mission')">✅ Approve & Commit ▾</button>
+            <button style="background:var(--ys);color:var(--yellow)">🔄 Revise</button>
+            <button style="background:var(--rs);color:var(--red)">❌ Reject</button>
+            <button style="background:var(--card2);color:var(--muted)">⏸ Later</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ S6: AGENTS ═══ -->
+    <div id="s-agents" class="screen">
+      <div class="ag">
+        <div class="ag-list">
+          <div class="ag-list-hdr"><span style="font-size:11px;font-weight:700">Agents</span><button class="btn" style="padding:3px 8px;font-size:9px">+ New</button></div>
+          <div class="ag-item active">
+            <div class="ag-avatar" style="background:var(--gs)">🤖</div>
+            <div><div style="font-size:11px;font-weight:600">Codex</div><div style="font-size:9px;color:var(--muted)">Backend · gpt-5.3-codex</div></div>
+            <div class="ag-status" style="background:var(--green)"></div>
+          </div>
+          <div class="ag-item">
+            <div class="ag-avatar" style="background:var(--ps)">🧠</div>
+            <div><div style="font-size:11px;font-weight:600">Claude Sonnet</div><div style="font-size:9px;color:var(--muted)">Full-stack · sonnet-4.6</div></div>
+            <div class="ag-status" style="background:var(--green)"></div>
+          </div>
+          <div class="ag-item">
+            <div class="ag-avatar" style="background:var(--bs)">🦙</div>
+            <div><div style="font-size:11px;font-weight:600">Ollama (PC1)</div><div style="font-size:9px;color:var(--muted)">Docs · pc1-coder</div></div>
+            <div class="ag-status" style="background:var(--yellow)"></div>
+          </div>
+          <div class="ag-item">
+            <div class="ag-avatar" style="background:var(--ts)">🔍</div>
+            <div><div style="font-size:11px;font-weight:600">QA Agent</div><div style="font-size:9px;color:var(--muted)">Reviewer · sonnet-4.6</div></div>
+            <div class="ag-status" style="background:var(--green)"></div>
+          </div>
+          <div class="ag-item">
+            <div class="ag-avatar" style="background:var(--as)">⚡</div>
+            <div><div style="font-size:11px;font-weight:600">Aurora</div><div style="font-size:9px;color:var(--muted)">Orchestrator · opus-4.6</div></div>
+            <div class="ag-status" style="background:var(--green)"></div>
+          </div>
+          <div class="ag-item">
+            <div class="ag-avatar" style="background:var(--card2)">🔧</div>
+            <div><div style="font-size:11px;font-weight:600">Forge (PC1)</div><div style="font-size:9px;color:var(--muted)">Heavy builds · qwen3.5-35b</div></div>
+            <div class="ag-status" style="background:var(--dim)"></div>
+          </div>
+        </div>
+        <div class="ag-detail">
+          <h2>🤖 Codex <span class="badge b-g">online</span> <span class="badge b-m">Backend</span></h2>
+          <div class="ag-tabs">
+            <div class="ag-tab active">Profile</div>
+            <div class="ag-tab">Model & Limits</div>
+            <div class="ag-tab">System Prompt</div>
+            <div class="ag-tab">Skills</div>
+            <div class="ag-tab">Memory</div>
+            <div class="ag-tab">Security</div>
+            <div class="ag-tab">Runs</div>
+          </div>
+
+          <div class="ag-grid">
+            <div class="ag-stat card"><div class="v" style="color:var(--green)">189k</div><div class="l">Tokens Today</div></div>
+            <div class="ag-stat card"><div class="v" style="color:var(--green)">$0.00</div><div class="l">Cost Today</div></div>
+            <div class="ag-stat card"><div class="v" style="color:var(--accent)">94%</div><div class="l">Success Rate</div></div>
+            <div class="ag-stat card"><div class="v" style="color:var(--blue)">4.1m</div><div class="l">Avg Response</div></div>
+          </div>
+
+          <div class="sec">Model & Provider</div>
+          <div class="card" style="padding:12px;margin-bottom:14px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+              <div><span style="color:var(--muted)">Model:</span> gpt-5.3-codex</div>
+              <div><span style="color:var(--muted)">Provider:</span> OpenAI (OAuth)</div>
+              <div><span style="color:var(--muted)">Max tokens:</span> 200k</div>
+              <div><span style="color:var(--muted)">Cost:</span> Free (ChatGPT Pro)</div>
+              <div><span style="color:var(--muted)">Concurrency:</span> 2</div>
+              <div><span style="color:var(--muted)">Memory:</span> Global + Project</div>
+            </div>
+          </div>
+
+          <div class="sec">System Prompt (SOUL.md)</div>
+          <textarea class="soul-ed"># Codex Agent
+
+## Role
+Primary coding agent. Fast, reliable, free via OAuth.
+
+## Strengths
+- Multi-file edits, scaffolding, tests
+- Package installation
+
+## Rules
+- Always run tsc --noEmit before committing
+- Read all relevant files before changes
+- One commit per task, descriptive message
+- Never guess at partial fixes</textarea>
+          <div style="display:flex;gap:4px;margin:8px 0 14px"><button class="btn btn-p" style="font-size:9px;padding:4px 10px">Save</button><button class="btn" style="font-size:9px;padding:4px 10px">Reset</button><span style="font-size:9px;color:var(--dim);margin-left:auto;margin-top:4px">v3 · edited 2h ago</span></div>
+
+          <div class="sec">Capabilities</div>
+          <div class="cap-toggle"><div><div class="cap-label">Repo Write</div><div class="cap-desc">Create, edit, delete files</div></div><div class="toggle on"></div></div>
+          <div class="cap-toggle"><div><div class="cap-label">Shell Commands</div><div class="cap-desc">Execute in workspace</div></div><div class="toggle on"></div></div>
+          <div class="cap-toggle"><div><div class="cap-label">Git Operations</div><div class="cap-desc">Commit, branch, push</div></div><div class="toggle on"></div></div>
+          <div class="cap-toggle"><div><div class="cap-label">Browser</div><div class="cap-desc">Web automation</div></div><div class="toggle"></div></div>
+          <div class="cap-toggle"><div><div class="cap-label">Network</div><div class="cap-desc">External API calls</div></div><div class="toggle"></div></div>
+
+          <div class="sec" style="margin-top:14px">Assigned Projects</div>
+          <div style="display:flex;gap:4px"><span class="badge b-a">ClawSuite</span><span class="badge b-p">LuxeLab</span><span class="badge b-g">Client Portal</span></div>
+
+          <div style="display:flex;gap:5px;margin-top:14px">
+            <button class="btn btn-p" style="font-size:10px;padding:5px 12px">Configure</button>
+            <button class="btn" style="font-size:10px;padding:5px 12px">Assign to Project</button>
+            <button class="btn" style="font-size:10px;padding:5px 12px">Test Run</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ S7: TEAMS ═══ -->
+    <div id="s-teams" class="screen">
+      <div class="teams">
+        <h1>Teams & Roles</h1>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+          <div class="team-card card"><div class="team-name">Admin</div><div class="team-members"><div class="team-member">👤 Eric</div></div><div class="team-perms">Full access · Can approve all · Can configure agents · Audit log access</div></div>
+          <div class="team-card card"><div class="team-name">Dev</div><div class="team-members"><div class="team-member">🤖 Codex</div><div class="team-member">🧠 Claude</div><div class="team-member">🦙 Ollama</div></div><div class="team-perms">Run tasks · Write files · Cannot approve own work · Cannot change policies</div></div>
+          <div class="team-card card"><div class="team-name">Reviewer</div><div class="team-members"><div class="team-member">🔍 QA Agent</div><div class="team-member">⚡ Aurora</div></div><div class="team-perms">Review checkpoints · Run verification · Cannot write code · Can request revisions</div></div>
+        </div>
+
+        <div class="sec">Approval Policy</div>
+        <div class="card" style="padding:14px;margin-bottom:16px">
+          <div style="font-size:11px;line-height:2">
+            <div style="display:flex;align-items:center;gap:6px"><span class="badge b-g" style="font-size:8px">Low risk</span> Auto-approve if all checks pass</div>
+            <div style="display:flex;align-items:center;gap:6px"><span class="badge b-y" style="font-size:8px">Medium risk</span> Require 1 reviewer approval</div>
+            <div style="display:flex;align-items:center;gap:6px"><span class="badge b-r" style="font-size:8px">High risk</span> Require admin approval (auth/db/payments)</div>
+          </div>
+        </div>
+
+        <div class="sec">Audit Log</div>
+        <div class="card" style="max-height:200px;overflow-y:auto">
+          <div class="audit-row"><span class="audit-time">20:41</span><span>Eric</span><span style="flex:1;color:var(--muted)">Approved checkpoint T2 (ClawSuite)</span></div>
+          <div class="audit-row"><span class="audit-time">20:38</span><span>QA Agent</span><span style="flex:1;color:var(--muted)">Ran verification on T3 — tsc passed</span></div>
+          <div class="audit-row"><span class="audit-time">20:34</span><span>Aurora</span><span style="flex:1;color:var(--muted)">Launched Mission 3: Checkpoint UI</span></div>
+          <div class="audit-row"><span class="audit-time">20:30</span><span>Eric</span><span style="flex:1;color:var(--muted)">Added QA Agent to ClawSuite project</span></div>
+          <div class="audit-row"><span class="audit-time">20:15</span><span>Eric</span><span style="flex:1;color:var(--muted)">Updated approval policy: high-risk requires admin</span></div>
+          <div class="audit-row"><span class="audit-time">19:55</span><span>Claude</span><span style="flex:1;color:var(--muted)">Completed T7 in LuxeLab (7m 12s)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ S8: NEW PROJECT WIZARD ═══ -->
+    <div id="s-wizard" class="screen">
+      <div class="wiz">
+        <div class="wiz-in">
+          <h1 style="font-size:16px;font-weight:700;margin-bottom:4px">New Project</h1>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Set up a new project in 5 steps</div>
+          <div class="wiz-steps">
+            <div class="wiz-step done">1. Source ✓</div>
+            <div class="wiz-step done">2. Spec ✓</div>
+            <div class="wiz-step active">3. Agents</div>
+            <div class="wiz-step">4. Policies</div>
+            <div class="wiz-step">5. Create</div>
+          </div>
+
+          <!-- Step 1 (shown as completed summary) -->
+          <div class="card" style="padding:12px;margin-bottom:8px;opacity:.7">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="sec" style="margin:0">Step 1: Source</span><span class="badge b-g" style="font-size:8px">✓ Local directory</span></div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;font-family:var(--m)">~/projects/saas-dashboard</div>
+          </div>
+
+          <!-- Step 2 (shown as completed summary) -->
+          <div class="card" style="padding:12px;margin-bottom:8px;opacity:.7">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="sec" style="margin:0">Step 2: Spec</span><span class="badge b-g" style="font-size:8px">✓ PRD pasted</span></div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">Build a SaaS dashboard with auth, billing, team management...</div>
+          </div>
+
+          <!-- Step 3: Agents (active) -->
+          <div class="wiz-card card">
+            <div class="sec">Step 3: Agent Squad</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Choose a squad template or customize</div>
+            <div class="wiz-opt">
+              <div class="wiz-opt-item selected"><div class="icon">🏗️</div><div class="name">Full Stack</div><div class="desc">Builder + Reviewer + QA</div></div>
+              <div class="wiz-opt-item"><div class="icon">⚡</div><div class="name">Speed</div><div class="desc">2x Builders + QA</div></div>
+              <div class="wiz-opt-item"><div class="icon">🔒</div><div class="name">Secure</div><div class="desc">Builder + Security + QA</div></div>
+              <div class="wiz-opt-item"><div class="icon">⚙️</div><div class="name">Custom</div><div class="desc">Pick agents manually</div></div>
+            </div>
+            <div style="margin-top:14px">
+              <div class="sec">Assigned Agents</div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);font-size:10px"><span style="font-size:14px">🤖</span><span style="flex:1"><strong>Codex</strong> · Backend builder · gpt-5.3-codex</span><span class="badge b-g" style="font-size:8px">primary</span></div>
+                <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);font-size:10px"><span style="font-size:14px">🧠</span><span style="flex:1"><strong>Claude</strong> · Full-stack · sonnet-4.6</span><span class="badge b-p" style="font-size:8px">secondary</span></div>
+                <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);font-size:10px"><span style="font-size:14px">🔍</span><span style="flex:1"><strong>QA Agent</strong> · Reviewer · sonnet-4.6</span><span class="badge b-t" style="font-size:8px">reviewer</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4 preview -->
+          <div class="card" style="padding:12px;margin-bottom:8px;opacity:.5">
+            <div class="sec" style="margin:0">Step 4: Policies</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:4px">Approval mode, required checks, tool permissions</div>
+          </div>
+
+          <div style="display:flex;gap:6px;margin-top:14px">
+            <button class="btn" style="flex:1">← Back</button>
+            <button class="btn btn-p" style="flex:2">Next: Policies →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ S9: PLAN REVIEW ═══ -->
+    <div id="s-planreview" class="screen">
+      <div style="padding:6px 12px;border-bottom:1px solid var(--border);background:var(--panel);display:flex;align-items:center;gap:6px;font-size:10px">
+        <span style="cursor:pointer;color:var(--muted)" onclick="go('project')">ClawSuite</span><span style="color:var(--dim)">›</span><span style="font-weight:600">New Mission — Plan Review</span>
+      </div>
+      <div class="plan">
+        <div class="plan-l">
+          <div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700">Mission Plan: Build Auth System</div><div style="font-size:11px;color:var(--muted);margin-top:2px">AI generated 8 tasks with dependencies. Review and edit before launching.</div></div>
+
+          <div class="plan-warn">⚠️ Tasks 3, 5 touch auth/security — marked high risk, will require admin approval</div>
+          <div class="plan-warn">📦 Task 1 will install 3 new dependencies (bcrypt, jsonwebtoken, zod)</div>
+
+          <div class="plan-task card"><div class="plan-num">1</div><div class="plan-task-body"><div class="plan-task-name">Project setup & dependencies</div><div class="plan-task-dep">No dependencies</div><div class="plan-task-badges"><span class="badge b-g" style="font-size:8px">Codex</span><span class="badge b-m" style="font-size:8px">~3min</span></div></div></div>
+          <div class="plan-task card"><div class="plan-num">2</div><div class="plan-task-body"><div class="plan-task-name">Database schema & user model</div><div class="plan-task-dep">← Task 1</div><div class="plan-task-badges"><span class="badge b-g" style="font-size:8px">Codex</span><span class="badge b-m" style="font-size:8px">~5min</span><span class="badge b-b" style="font-size:8px">DB</span></div></div></div>
+          <div class="plan-task card" style="border-left:2px solid var(--red)"><div class="plan-num" style="background:var(--rs);color:var(--red);border-color:var(--rb)">3</div><div class="plan-task-body"><div class="plan-task-name">Auth API routes (login, register, me)</div><div class="plan-task-dep">← Task 1, 2</div><div class="plan-task-badges"><span class="badge b-p" style="font-size:8px">Claude</span><span class="badge b-m" style="font-size:8px">~8min</span><span class="badge b-r" style="font-size:8px">AUTH 🔥</span></div></div></div>
+          <div class="plan-task card"><div class="plan-num">4</div><div class="plan-task-body"><div class="plan-task-name">Login & Register UI components</div><div class="plan-task-dep">← Task 1</div><div class="plan-task-badges"><span class="badge b-g" style="font-size:8px">Codex</span><span class="badge b-m" style="font-size:8px">~6min</span><span class="badge b-b" style="font-size:8px">UI</span></div></div></div>
+          <div class="plan-task card" style="border-left:2px solid var(--red)"><div class="plan-num" style="background:var(--rs);color:var(--red);border-color:var(--rb)">5</div><div class="plan-task-body"><div class="plan-task-name">JWT middleware & token refresh</div><div class="plan-task-dep">← Task 3</div><div class="plan-task-badges"><span class="badge b-p" style="font-size:8px">Claude</span><span class="badge b-m" style="font-size:8px">~4min</span><span class="badge b-r" style="font-size:8px">AUTH 🔥</span></div></div></div>
+          <div class="plan-task card"><div class="plan-num">6</div><div class="plan-task-body"><div class="plan-task-name">Protected route wrappers</div><div class="plan-task-dep">← Task 4, 5</div><div class="plan-task-badges"><span class="badge b-g" style="font-size:8px">Codex</span><span class="badge b-m" style="font-size:8px">~5min</span></div></div></div>
+          <div class="plan-task card"><div class="plan-num">7</div><div class="plan-task-body"><div class="plan-task-name">Integration tests</div><div class="plan-task-dep">← Task 3, 5, 6</div><div class="plan-task-badges"><span class="badge b-t" style="font-size:8px">QA Agent</span><span class="badge b-m" style="font-size:8px">~10min</span></div></div></div>
+          <div class="plan-task card"><div class="plan-num">8</div><div class="plan-task-body"><div class="plan-task-name">API documentation</div><div class="plan-task-dep">← All tasks</div><div class="plan-task-badges"><span class="badge b-b" style="font-size:8px">Ollama</span><span class="badge b-m" style="font-size:8px">~3min</span></div></div></div>
+        </div>
+        <div class="plan-r">
+          <div class="plan-stat">
+            <div class="plan-stat-item card"><div class="v" style="color:var(--blue)">8</div><div class="l">Tasks</div></div>
+            <div class="plan-stat-item card"><div class="v" style="color:var(--accent)">~35m</div><div class="l">Est. Time</div></div>
+            <div class="plan-stat-item card"><div class="v" style="color:var(--green)">$0.00</div><div class="l">Est. Cost</div></div>
+            <div class="plan-stat-item card"><div class="v" style="color:var(--purple)">3</div><div class="l">Agents</div></div>
+          </div>
+          <div class="sec">Execution Waves</div>
+          <div class="card" style="padding:6px;margin-bottom:10px;font-size:10px">
+            <div style="display:flex;justify-content:space-between;padding:4px 6px"><span style="color:var(--accent);font-weight:600">Wave 1</span><span>T1</span><span style="color:var(--muted)">~3m</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 6px"><span style="color:var(--accent);font-weight:600">Wave 2</span><span>T2, T4</span><span style="color:var(--muted)">~6m ∥</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 6px"><span style="color:var(--accent);font-weight:600">Wave 3</span><span>T3, T5</span><span style="color:var(--muted)">~8m ∥</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 6px"><span style="color:var(--accent);font-weight:600">Wave 4</span><span>T6</span><span style="color:var(--muted)">~5m</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 6px"><span style="color:var(--accent);font-weight:600">Wave 5</span><span>T7</span><span style="color:var(--muted)">~10m</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 6px"><span style="color:var(--accent);font-weight:600">Wave 6</span><span>T8</span><span style="color:var(--muted)">~3m</span></div>
+          </div>
+          <div class="sec">Agents</div>
+          <div style="font-size:10px;color:var(--muted);line-height:1.8;margin-bottom:10px"><span class="badge b-g" style="font-size:8px">Codex</span> 4 tasks<br><span class="badge b-p" style="font-size:8px">Claude</span> 2 tasks<br><span class="badge b-t" style="font-size:8px">QA</span> 1 task<br><span class="badge b-b" style="font-size:8px">Ollama</span> 1 task</div>
+          <div class="sec">Checks</div>
+          <div style="font-size:10px;color:var(--muted);line-height:1.8;margin-bottom:12px">✅ tsc after each task<br>✅ tests after T7<br>⚪ lint (off)<br>⚪ e2e (off)</div>
+          <div style="display:flex;gap:4px">
+            <button class="btn" style="flex:1;font-size:10px;padding:5px">✏️ Edit</button>
+            <button class="btn" style="flex:1;font-size:10px;padding:5px">🔄 Re-plan</button>
+            <button class="btn btn-p" style="flex:1;font-size:10px;padding:5px" onclick="go('mission')">🚀 Launch</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ S10: RUNS / CONSOLE ═══ -->
+    <div id="s-runs" class="screen">
+      <div class="runs">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h1 style="font-size:16px;font-weight:700">Runs / Console</h1>
+          <div style="display:flex;gap:4px">
+            <span class="inbox-filter active">All</span><span class="inbox-filter">Active</span><span class="inbox-filter">Completed</span><span class="inbox-filter">Failed</span>
+            <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
+            <select class="input" style="width:120px;padding:4px 6px;font-size:9px"><option>All Projects</option><option>ClawSuite</option><option>LuxeLab</option></select>
+            <select class="input" style="width:100px;padding:4px 6px;font-size:9px"><option>All Agents</option><option>Codex</option><option>Claude</option></select>
+          </div>
+        </div>
+
+        <div class="sec">Active Runs (2)</div>
+        <div class="run-card card" onclick="go('mission')">
+          <div class="run-status" style="background:var(--green);box-shadow:0 0 6px rgba(34,197,94,.4)"></div>
+          <div class="run-body">
+            <div class="run-title">T4: Login UI — <span style="color:var(--accent)">Codex</span></div>
+            <div class="run-meta">ClawSuite · Mission 3 · Creating RegisterPage.tsx</div>
+            <div style="display:flex;gap:4px;margin-top:4px"><span class="badge b-a" style="font-size:8px">60%</span><span class="badge b-g" style="font-size:8px">2 files written</span></div>
+          </div>
+          <div class="run-right"><span class="run-time">4m 12s</span><span class="badge b-g">live</span></div>
+        </div>
+        <div class="run-card card">
+          <div class="run-status" style="background:var(--purple);box-shadow:0 0 6px rgba(168,85,247,.4)"></div>
+          <div class="run-body">
+            <div class="run-title">T3: Auth API — <span style="color:var(--purple)">Claude</span></div>
+            <div class="run-meta">ClawSuite · Mission 3 · Creating register.ts</div>
+            <div style="display:flex;gap:4px;margin-top:4px"><span class="badge b-a" style="font-size:8px">45%</span><span class="badge b-g" style="font-size:8px">1 file written</span></div>
+          </div>
+          <div class="run-right"><span class="run-time">7m 42s</span><span class="badge b-g">live</span></div>
+        </div>
+
+        <div class="sec" style="margin-top:16px">Recent Runs</div>
+        <div class="run-card card" style="opacity:.8">
+          <div class="run-status" style="background:var(--green)"></div>
+          <div class="run-body"><div class="run-title">T2: DB Schema — Codex</div><div class="run-meta">ClawSuite · Mission 3 · ✅ Checkpoint approved</div></div>
+          <div class="run-right"><span class="run-time">4m 12s</span><span style="font-size:9px;color:var(--green)">✅ done</span><span style="font-size:9px;color:var(--muted)">12.1k tok · $0.00</span></div>
+        </div>
+        <div class="run-card card" style="opacity:.8">
+          <div class="run-status" style="background:var(--green)"></div>
+          <div class="run-body"><div class="run-title">T1: Setup — Codex</div><div class="run-meta">ClawSuite · Mission 3 · ✅ Checkpoint approved</div></div>
+          <div class="run-right"><span class="run-time">2m 48s</span><span style="font-size:9px;color:var(--green)">✅ done</span><span style="font-size:9px;color:var(--muted)">8.3k tok · $0.00</span></div>
+        </div>
+        <div class="run-card card" style="opacity:.8">
+          <div class="run-status" style="background:var(--yellow)"></div>
+          <div class="run-body"><div class="run-title">T7: Webview migration — Codex</div><div class="run-meta">LuxeLab · Webview Migration · ⏸ Waiting for review</div></div>
+          <div class="run-right"><span class="run-time">6m 34s</span><span style="font-size:9px;color:var(--yellow)">⏸ review</span><span style="font-size:9px;color:var(--muted)">15.2k tok · $0.00</span></div>
+        </div>
+        <div class="run-card card" style="opacity:.6">
+          <div class="run-status" style="background:var(--red)"></div>
+          <div class="run-body"><div class="run-title">T5: Session portability — Claude</div><div class="run-meta">LuxeLab · Sessions · ❌ tsc failed — auto-retried → passed on retry</div></div>
+          <div class="run-right"><span class="run-time">8m 55s</span><span style="font-size:9px;color:var(--red)">❌ failed</span><span style="font-size:9px;color:var(--muted)">22.1k tok · $0.00</span></div>
+        </div>
+        <div class="run-card card" style="opacity:.6">
+          <div class="run-status" style="background:var(--green)"></div>
+          <div class="run-body"><div class="run-title">T12: Avatar photos — Claude</div><div class="run-meta">LuxeLab · UI Polish · ✅ Checkpoint approved</div></div>
+          <div class="run-right"><span class="run-time">3m 22s</span><span style="font-size:9px;color:var(--green)">✅ done</span><span style="font-size:9px;color:var(--muted)">9.8k tok · $0.00</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ S11: SKILLS & MEMORY ═══ -->
+    <div id="s-skills" class="screen">
+      <div class="sm">
+        <div class="sm-panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <h2 style="font-size:15px;font-weight:700">Skills</h2>
+            <div style="display:flex;gap:4px"><button class="btn" style="font-size:9px;padding:4px 10px">+ Install Skill</button><button class="btn" style="font-size:9px;padding:4px 10px">Browse ClawHub</button></div>
+          </div>
+          <div style="display:flex;gap:4px;margin-bottom:10px">
+            <span class="inbox-filter active">All</span><span class="inbox-filter">QA</span><span class="inbox-filter">Auth</span><span class="inbox-filter">UI</span><span class="inbox-filter">DB</span><span class="inbox-filter">DevOps</span>
+          </div>
+          <div class="skill-card card"><div class="skill-icon" style="background:var(--gs)">🔍</div><div style="flex:1"><div class="skill-name">Code Reviewer</div><div class="skill-desc">Automated code review with style + security checks</div></div><div style="display:flex;gap:3px"><span class="badge b-t" style="font-size:8px">QA</span><span class="badge b-g" style="font-size:8px">active</span></div></div>
+          <div class="skill-card card"><div class="skill-icon" style="background:var(--rs)">🔒</div><div style="flex:1"><div class="skill-name">Auth Patterns</div><div class="skill-desc">JWT, OAuth, session management templates</div></div><div style="display:flex;gap:3px"><span class="badge b-r" style="font-size:8px">Auth</span><span class="badge b-g" style="font-size:8px">active</span></div></div>
+          <div class="skill-card card"><div class="skill-icon" style="background:var(--bs)">🗄️</div><div style="flex:1"><div class="skill-name">DB Migration</div><div class="skill-desc">Schema migrations, seed data, rollback</div></div><div style="display:flex;gap:3px"><span class="badge b-b" style="font-size:8px">DB</span><span class="badge b-g" style="font-size:8px">active</span></div></div>
+          <div class="skill-card card"><div class="skill-icon" style="background:var(--as)">🎨</div><div style="flex:1"><div class="skill-name">UI Component Gen</div><div class="skill-desc">Generate React components from descriptions</div></div><div style="display:flex;gap:3px"><span class="badge b-a" style="font-size:8px">UI</span><span class="badge b-g" style="font-size:8px">active</span></div></div>
+          <div class="skill-card card"><div class="skill-icon" style="background:var(--ps)">🧪</div><div style="flex:1"><div class="skill-name">Test Writer</div><div class="skill-desc">Generate unit + integration tests from code</div></div><div style="display:flex;gap:3px"><span class="badge b-p" style="font-size:8px">QA</span><span class="badge b-g" style="font-size:8px">active</span></div></div>
+          <div class="skill-card card" style="opacity:.5"><div class="skill-icon" style="background:var(--card2)">🐳</div><div style="flex:1"><div class="skill-name">Docker Compose</div><div class="skill-desc">Container orchestration + CI/CD</div></div><div style="display:flex;gap:3px"><span class="badge b-m" style="font-size:8px">DevOps</span><span class="badge b-m" style="font-size:8px">disabled</span></div></div>
+        </div>
+        <div class="sm-divider"></div>
+        <div class="sm-panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <h2 style="font-size:15px;font-weight:700">Memory</h2>
+            <div style="display:flex;gap:4px"><button class="btn" style="font-size:9px;padding:4px 10px">Export</button><button class="btn btn-d" style="font-size:9px;padding:4px 10px">Clear All</button></div>
+          </div>
+          <input class="input" placeholder="🔍 Search memory..." style="margin-bottom:10px;font-size:10px;padding:6px 8px">
+          <div style="display:flex;gap:4px;margin-bottom:10px"><span class="inbox-filter active">All</span><span class="inbox-filter">Workspace</span><span class="inbox-filter">Project</span><span class="inbox-filter">Agent</span></div>
+
+          <div class="sec">Workspace Memory</div>
+          <div class="mem-file active">📄 MEMORY.md <span style="margin-left:auto;font-size:9px;color:var(--dim)">4.2KB</span></div>
+          <div class="mem-file">📄 SOUL.md <span style="margin-left:auto;font-size:9px;color:var(--dim)">1.1KB</span></div>
+          <div class="mem-file">📄 AGENTS.md <span style="margin-left:auto;font-size:9px;color:var(--dim)">3.8KB</span></div>
+          <div class="mem-file">📄 USER.md <span style="margin-left:auto;font-size:9px;color:var(--dim)">0.6KB</span></div>
+
+          <div class="sec" style="margin-top:10px">Daily Logs</div>
+          <div class="mem-file">📄 2026-03-04.md <span style="margin-left:auto;font-size:9px;color:var(--dim)">1.8KB</span></div>
+          <div class="mem-file">📄 2026-03-03.md <span style="margin-left:auto;font-size:9px;color:var(--dim)">2.4KB</span></div>
+          <div class="mem-file">📄 2026-03-02.md <span style="margin-left:auto;font-size:9px;color:var(--dim)">3.1KB</span></div>
+
+          <div class="sec" style="margin-top:10px">Agent Memory</div>
+          <div class="mem-file">🤖 Codex learnings <span style="margin-left:auto;font-size:9px;color:var(--dim)">12 entries</span></div>
+          <div class="mem-file">🧠 Claude context <span style="margin-left:auto;font-size:9px;color:var(--dim)">8 entries</span></div>
+
+          <div class="sec" style="margin-top:10px">Retention</div>
+          <div class="card" style="padding:10px;font-size:10px;color:var(--muted)">
+            <div style="display:flex;justify-content:space-between;padding:3px 0">Workspace memory<span style="color:var(--text)">Permanent</span></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0">Project memory<span style="color:var(--text)">Per-project</span></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0">Agent memory<span style="color:var(--text)">30 day rolling</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById('s-'+id);
+  if(el)el.classList.add('active');
+}
+function toggleTheme(){
+  document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent=document.body.classList.contains('light')?'☀️':'🌙';
+}
+</script>
+</body>
+</html>

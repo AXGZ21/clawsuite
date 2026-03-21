@@ -1,0 +1,182 @@
+<html>
+<head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, system-ui, sans-serif; padding: 8px; }
+.container { display: grid; grid-template-columns: 220px 1fr 280px; grid-template-rows: 44px 1fr 160px; height: calc(100vh - 16px); gap: 1px; background: #1e293b33; border-radius: 12px; overflow: hidden; }
+.topbar { grid-column: 1 / -1; background: #0f1219; display: flex; align-items: center; padding: 0 16px; gap: 12px; border-bottom: 1px solid #1e293b; }
+.topbar .logo { font-weight: 700; font-size: 14px; color: #f97316; }
+.topbar .breadcrumb { color: #64748b; font-size: 12px; }
+.topbar .breadcrumb span { color: #94a3b8; }
+.topbar .spacer { flex: 1; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot.green { background: #22c55e; box-shadow: 0 0 6px #22c55e55; }
+.topbar .cost { font-size: 11px; color: #64748b; }
+.bell { position: relative; cursor: pointer; font-size: 14px; }
+.bell .badge { position: absolute; top: -4px; right: -6px; background: #ef4444; color: white; font-size: 8px; width: 13px; height: 13px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.sidebar { background: #0f1219; padding: 10px; overflow-y: auto; border-right: 1px solid #1e293b; }
+.sidebar h3 { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #475569; margin: 14px 0 6px; }
+.sidebar h3:first-child { margin-top: 2px; }
+.mission-item { padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
+.mission-item:hover { background: #1e293b; }
+.mission-item.active { background: #1e293b; border-left: 2px solid #f97316; }
+.mission-item .name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mission-item .time { font-size: 9px; color: #475569; }
+.agent-item { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; font-size: 12px; margin-bottom: 2px; }
+.agent-item .dot { width: 6px; height: 6px; }
+.agent-item .dot.working { background: #f97316; animation: pulse 1.5s infinite; }
+.agent-item .dot.idle { background: #475569; }
+.agent-item .dot.done { background: #22c55e; }
+.agent-item .role { font-size: 9px; color: #64748b; }
+.new-mission { width: 100%; padding: 7px; background: #f9731620; border: 1px solid #f9731640; color: #f97316; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.center { background: #0b0e14; display: flex; flex-direction: column; overflow: hidden; }
+.center-header { padding: 10px 14px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; gap: 10px; }
+.center-header h2 { font-size: 14px; font-weight: 600; flex: 1; }
+.pill { padding: 3px 8px; border-radius: 5px; font-size: 10px; cursor: pointer; background: #1e293b; color: #94a3b8; }
+.pill.active { background: #f97316; color: white; }
+.stream { flex: 1; overflow-y: auto; padding: 14px; }
+.stream-msg { margin-bottom: 14px; display: flex; gap: 8px; }
+.stream-msg .avatar { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.stream-msg .avatar.coder { background: #3b82f620; color: #60a5fa; }
+.stream-msg .avatar.planner { background: #a855f720; color: #c084fc; }
+.stream-msg .avatar.reviewer { background: #22c55e20; color: #4ade80; }
+.stream-msg .avatar.user { background: #f9731620; color: #f97316; }
+.stream-msg .content { flex: 1; }
+.stream-msg .meta { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+.stream-msg .agent-name { font-size: 11px; font-weight: 600; }
+.stream-msg .timestamp { font-size: 9px; color: #475569; }
+.stream-msg .tag { font-size: 8px; padding: 1px 5px; border-radius: 3px; }
+.stream-msg .tag.tool { background: #f59e0b20; color: #f59e0b; }
+.stream-msg .tag.thinking { background: #8b5cf620; color: #a78bfa; }
+.stream-msg .text { font-size: 12px; line-height: 1.5; color: #cbd5e1; }
+.stream-msg .code-block { background: #151922; border: 1px solid #1e293b; border-radius: 6px; padding: 8px 10px; margin-top: 5px; font-family: monospace; font-size: 11px; color: #94a3b8; white-space: pre; overflow-x: auto; }
+.stream-msg .file-badge { display: inline-flex; align-items: center; gap: 3px; background: #1e293b; padding: 2px 6px; border-radius: 3px; font-size: 10px; color: #94a3b8; margin-top: 4px; margin-right: 4px; }
+.goal-input { padding: 10px 14px; border-top: 1px solid #1e293b; display: flex; gap: 6px; }
+.goal-input input { flex: 1; background: #151922; border: 1px solid #1e293b; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-size: 12px; outline: none; }
+.goal-input input:focus { border-color: #f97316; }
+.goal-input input::placeholder { color: #475569; }
+.goal-input button { background: #f97316; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.right { background: #0f1219; padding: 0; overflow-y: auto; border-left: 1px solid #1e293b; }
+.panel { border-bottom: 1px solid #1e293b; }
+.panel-header { padding: 8px 12px; display: flex; align-items: center; }
+.panel-header h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; flex: 1; }
+.panel-header .count { background: #f9731630; color: #f97316; font-size: 9px; padding: 1px 5px; border-radius: 3px; }
+.panel-body { padding: 0 12px 10px; }
+.mini-kanban { display: grid; grid-template-columns: repeat(4,1fr); gap: 3px; }
+.mini-col { background: #151922; border-radius: 4px; padding: 4px; min-height: 50px; }
+.mini-col-header { font-size: 8px; color: #475569; text-transform: uppercase; margin-bottom: 3px; text-align: center; }
+.mini-card { background: #1e293b; border-radius: 3px; padding: 3px 5px; margin-bottom: 2px; font-size: 9px; display: flex; align-items: center; gap: 3px; }
+.mini-card .cd { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+.agent-card { display: flex; align-items: center; gap: 6px; padding: 6px 0; }
+.agent-card .av { width: 22px; height: 22px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+.agent-card .info { flex: 1; }
+.agent-card .info .name { font-size: 11px; font-weight: 500; }
+.agent-card .info .task { font-size: 9px; color: #64748b; }
+.agent-card .sb { font-size: 8px; padding: 2px 5px; border-radius: 3px; }
+.sb.w { background: #f9731620; color: #f97316; }
+.sb.r { background: #a855f720; color: #c084fc; }
+.sb.d { background: #22c55e20; color: #4ade80; }
+.approval-item { display: flex; align-items: center; gap: 6px; padding: 5px 0; }
+.approval-item .desc { flex: 1; font-size: 10px; }
+.btn-sm { padding: 2px 6px; border-radius: 3px; font-size: 9px; border: none; cursor: pointer; font-weight: 500; }
+.btn-a { background: #22c55e20; color: #22c55e; }
+.btn-d { background: #ef444420; color: #ef4444; }
+.fc { display: flex; align-items: center; gap: 5px; padding: 3px 0; font-size: 10px; }
+.fc .fn { color: #94a3b8; flex: 1; }
+.fc .add { color: #22c55e; }
+.cr { display: flex; justify-content: space-between; padding: 2px 0; font-size: 10px; }
+.cr .l { color: #64748b; }
+.cr .v { color: #e2e8f0; font-weight: 500; }
+.terminal { grid-column: 1/-1; background: #0b0e14; border-top: 1px solid #1e293b; display: flex; flex-direction: column; }
+.terminal-header { display: flex; align-items: center; padding: 5px 10px; gap: 6px; border-bottom: 1px solid #1e293b; }
+.tt { padding: 2px 8px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #64748b; }
+.tt.active { background: #1e293b; color: #e2e8f0; }
+.terminal-body { flex: 1; padding: 6px 10px; font-family: monospace; font-size: 11px; color: #22c55e; overflow-y: auto; line-height: 1.5; }
+.p { color: #60a5fa; }
+.o { color: #94a3b8; }
+.cur { display: inline-block; width: 6px; height: 13px; background: #22c55e; animation: blink 1s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <div class="logo">⚡ ClawSuite</div>
+    <div class="breadcrumb">Workspace / <span>Build Landing Page</span></div>
+    <div class="spacer"></div>
+    <div style="display:flex;gap:6px;align-items:center"><div class="dot green"></div><span style="font-size:11px;color:#94a3b8">3 agents</span></div>
+    <div class="cost">$0.42 · 18.2k tok</div>
+    <div class="bell">🔔<div class="badge">2</div></div>
+  </div>
+  <div class="sidebar">
+    <button class="new-mission">+ New Mission</button>
+    <h3>Active</h3>
+    <div class="mission-item active"><span>🟠</span><span class="name">Build Landing Page</span><span class="time">4m</span></div>
+    <div class="mission-item"><span>🟢</span><span class="name">Fix Auth Bug #234</span><span class="time">12m</span></div>
+    <h3>Recent</h3>
+    <div class="mission-item"><span>✅</span><span class="name">API Rate Limiting</span><span class="time">2h</span></div>
+    <div class="mission-item"><span>✅</span><span class="name">Refactor Auth Module</span><span class="time">5h</span></div>
+    <div class="mission-item"><span>✅</span><span class="name">Add Dark Mode</span><span class="time">1d</span></div>
+    <h3>Agents</h3>
+    <div class="agent-item"><div class="dot working"></div><span class="name">Forge</span><span class="role">Coder</span></div>
+    <div class="agent-item"><div class="dot working"></div><span class="name">Atlas</span><span class="role">Planner</span></div>
+    <div class="agent-item"><div class="dot done"></div><span class="name">Lens</span><span class="role">Reviewer</span></div>
+    <div class="agent-item"><div class="dot idle"></div><span class="name">Scout</span><span class="role">Research</span></div>
+    <h3>Skills</h3>
+    <div class="agent-item"><span style="font-size:11px">📦</span><span class="name">12 installed</span></div>
+  </div>
+  <div class="center">
+    <div class="center-header">
+      <h2>Build Landing Page</h2>
+      <div style="display:flex;gap:3px">
+        <div class="pill active">Stream</div><div class="pill">Timeline</div><div class="pill">Report</div><div class="pill">Diffs</div>
+      </div>
+    </div>
+    <div class="stream">
+      <div class="stream-msg"><div class="avatar user">E</div><div class="content"><div class="meta"><span class="agent-name" style="color:#f97316">You</span><span class="timestamp">4 min ago</span></div><div class="text">Build a landing page for ClawSuite with hero, pricing (Free/$20/$50), features, testimonials, FAQ. Next.js + Tailwind.</div></div></div>
+      <div class="stream-msg"><div class="avatar planner">🧠</div><div class="content"><div class="meta"><span class="agent-name" style="color:#c084fc">Atlas</span><span class="tag thinking">planning</span><span class="timestamp">4m</span></div><div class="text">Decomposed into 5 tasks:<br><span style="color:#64748b">1.</span> Hero + nav → <span style="color:#60a5fa">Forge</span><br><span style="color:#64748b">2.</span> Pricing tiers → <span style="color:#60a5fa">Forge</span><br><span style="color:#64748b">3.</span> Features + testimonials → <span style="color:#60a5fa">Forge</span><br><span style="color:#64748b">4.</span> FAQ accordion → <span style="color:#60a5fa">Forge</span><br><span style="color:#64748b">5.</span> Review + polish → <span style="color:#4ade80">Lens</span></div></div></div>
+      <div class="stream-msg"><div class="avatar coder">⚡</div><div class="content"><div class="meta"><span class="agent-name" style="color:#60a5fa">Forge</span><span class="tag tool">writing code</span><span class="timestamp">3m</span></div><div class="text">Creating hero section with gradient background and CTA buttons...</div><div class="code-block">export default function LandingPage() {
+  return (
+    &lt;main className="min-h-screen"&gt;
+      &lt;Hero /&gt;
+      &lt;Features /&gt;
+      &lt;Pricing /&gt;
+    &lt;/main&gt;
+  )
+}</div><div class="file-badge">📄 app/page.tsx <span style="color:#22c55e">+47</span></div><div class="file-badge">📄 components/hero.tsx <span style="color:#22c55e">+89</span></div></div></div>
+      <div class="stream-msg"><div class="avatar coder">⚡</div><div class="content"><div class="meta"><span class="agent-name" style="color:#60a5fa">Forge</span><span class="tag tool">writing code</span><span class="timestamp">1m</span></div><div class="text">Building pricing tiers with Polar integration...</div><div class="file-badge">📄 components/pricing.tsx <span style="color:#22c55e">+124</span></div></div></div>
+      <div class="stream-msg"><div class="avatar reviewer">✓</div><div class="content"><div class="meta"><span class="agent-name" style="color:#4ade80">Lens</span><span class="timestamp">now</span></div><div class="text" style="color:#fbbf24">⚠️ <strong>Approval needed:</strong> Hero CTA links to /signup but no signup page exists. Create stub or remove?</div></div></div>
+    </div>
+    <div class="goal-input"><input placeholder="Steer agents, ask questions, or start a new goal..." /><button>Send</button></div>
+  </div>
+  <div class="right">
+    <div class="panel"><div class="panel-header"><h4>📋 Tasks</h4><span class="count">3/5</span></div><div class="panel-body"><div class="mini-kanban"><div class="mini-col"><div class="mini-col-header">Queue</div><div class="mini-card"><div class="cd" style="background:#3b82f6"></div>FAQ</div></div><div class="mini-col"><div class="mini-col-header">Active</div><div class="mini-card"><div class="cd" style="background:#f97316"></div>Pricing</div></div><div class="mini-col"><div class="mini-col-header">Review</div><div class="mini-card"><div class="cd" style="background:#a855f7"></div>Hero</div></div><div class="mini-col"><div class="mini-col-header">Done</div><div class="mini-card"><div class="cd" style="background:#22c55e"></div>Nav</div><div class="mini-card"><div class="cd" style="background:#22c55e"></div>Layout</div></div></div></div></div>
+    <div class="panel"><div class="panel-header"><h4>🤖 Agents</h4></div><div class="panel-body">
+      <div class="agent-card"><div class="av" style="background:#3b82f620;color:#60a5fa">⚡</div><div class="info"><div class="name">Forge</div><div class="task">Building pricing.tsx</div></div><div class="sb w">working</div></div>
+      <div class="agent-card"><div class="av" style="background:#a855f720;color:#c084fc">🧠</div><div class="info"><div class="name">Atlas</div><div class="task">Monitoring</div></div><div class="sb w">watching</div></div>
+      <div class="agent-card"><div class="av" style="background:#22c55e20;color:#4ade80">✓</div><div class="info"><div class="name">Lens</div><div class="task">Reviewing hero.tsx</div></div><div class="sb r">reviewing</div></div>
+    </div></div>
+    <div class="panel"><div class="panel-header"><h4>⚠️ Approvals</h4><span class="count">2</span></div><div class="panel-body">
+      <div class="approval-item"><div class="desc">Hero CTA → stub signup?</div><button class="btn-sm btn-a">✓</button><button class="btn-sm btn-d">✗</button></div>
+      <div class="approval-item"><div class="desc">Add analytics script?</div><button class="btn-sm btn-a">✓</button><button class="btn-sm btn-d">✗</button></div>
+    </div></div>
+    <div class="panel"><div class="panel-header"><h4>📝 Changes</h4></div><div class="panel-body">
+      <div class="fc"><span class="fn">app/page.tsx</span><span class="add">+47</span></div>
+      <div class="fc"><span class="fn">components/hero.tsx</span><span class="add">+89</span></div>
+      <div class="fc"><span class="fn">components/pricing.tsx</span><span class="add">+124</span></div>
+      <div class="fc"><span class="fn">components/nav.tsx</span><span class="add">+34</span></div>
+    </div></div>
+    <div class="panel"><div class="panel-header"><h4>💰 Cost</h4></div><div class="panel-body">
+      <div class="cr"><span class="l">Tokens</span><span class="v">18,247</span></div>
+      <div class="cr"><span class="l">Cost</span><span class="v">$0.42</span></div>
+      <div class="cr"><span class="l">Duration</span><span class="v">4m 12s</span></div>
+      <div class="cr"><span class="l">Model</span><span class="v">Sonnet 4.6</span></div>
+    </div></div>
+  </div>
+  <div class="terminal">
+    <div class="terminal-header"><div class="tt active">Terminal 1</div><div class="tt">Forge PTY</div><div class="tt">+ New</div></div>
+    <div class="terminal-body"><span class="p">~/clawsuite $</span> <span class="o">npx tsc --noEmit</span><br><span class="o">✓ No errors found</span><br><span class="p">~/clawsuite $</span> <span class="o">git diff --stat</span><br><span class="o"> app/page.tsx           | 47 +++++++++</span><br><span class="o"> components/hero.tsx    | 89 ++++++++++++++</span><br><span class="o"> components/pricing.tsx | 124 +++++++++++++++++++</span><br><span class="o"> 3 files changed, 260 insertions(+)</span><br><span class="p">~/clawsuite $</span> <span class="cur"></span></div>
+  </div>
+</div>
+</body></html>

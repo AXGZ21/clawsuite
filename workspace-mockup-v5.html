@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>ClawSuite Workspace</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;
+  --card:#0f1219;
+  --card2:#141927;
+  --border:#1e293b;
+  --border2:#253347;
+  --text:#e2e8f0;
+  --text2:#94a3b8;
+  --text3:#64748b;
+  --accent:#f97316;
+  --accent-dim:#7c3a0f;
+  --blue:#3b82f6;
+  --purple:#a855f7;
+  --green:#22c55e;
+  --gray:#94a3b8;
+  --amber:#f59e0b;
+  --red:#ef4444;
+  --font:system-ui,-apple-system,'Segoe UI',sans-serif;
+  --radius:8px;
+  --radius-lg:12px;
+  --transition:all 0.2s ease;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;overflow:hidden}
+
+/* Demo tab bar */
+#demo-bar{position:fixed;top:0;left:0;right:0;z-index:1000;background:#060609;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0;height:40px;padding:0 16px}
+#demo-bar span{color:var(--text3);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-right:12px;white-space:nowrap}
+.demo-tab{padding:0 16px;height:40px;display:flex;align-items:center;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:var(--transition);white-space:nowrap;background:none;border-left:none;border-right:none;border-top:none}
+.demo-tab:hover{color:var(--text2)}
+.demo-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+#demo-bar .spacer{flex:1}
+.demo-gear{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);transition:var(--transition)}
+.demo-gear:hover{color:var(--text);border-color:var(--border2)}
+
+/* App shell */
+#app{position:fixed;top:40px;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden}
+
+/* States */
+.state{display:none;width:100%;height:100%;flex-direction:column}
+.state.active{display:flex}
+
+/* ===== STATE 1: HOME ===== */
+#state-home{align-items:center;justify-content:center;padding:40px 24px}
+.home-inner{width:100%;max-width:680px;display:flex;flex-direction:column;align-items:center;gap:32px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:20px;height:20px;fill:white}
+.logo-text{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.logo-text span{color:var(--accent)}
+.home-headline{font-size:28px;font-weight:600;letter-spacing:-.02em;color:var(--text);text-align:center;line-height:1.3}
+.home-sub{font-size:15px;color:var(--text3);text-align:center;margin-top:-16px}
+.home-input-wrap{width:100%;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius-lg);overflow:hidden;transition:var(--transition)}
+.home-input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+.home-textarea{width:100%;padding:18px 20px 12px;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--font);font-size:15px;resize:none;min-height:100px}
+.home-textarea::placeholder{color:var(--text3)}
+.home-input-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--border)}
+.chip-row{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:4px 12px;border-radius:99px;border:1px solid var(--border2);font-size:12px;color:var(--text2);cursor:pointer;transition:var(--transition);background:transparent}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.send-btn{padding:7px 16px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:var(--transition)}
+.send-btn:hover{background:#ea6d0d}
+.home-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.home-chip{padding:6px 14px;border-radius:99px;border:1px solid var(--border);font-size:12px;color:var(--text3);cursor:pointer;transition:var(--transition);background:var(--card)}
+.home-chip:hover{border-color:var(--border2);color:var(--text2)}
+.recent-section{width:100%;display:flex;flex-direction:column;gap:6px}
+.recent-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.recent-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius);cursor:pointer;transition:var(--transition)}
+.recent-item:hover{background:var(--card)}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-done{background:var(--green)}
+.dot-active{background:var(--accent);box-shadow:0 0 6px var(--accent);animation:pulse 2s infinite}
+.dot-idle{background:var(--border2)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.recent-title{flex:1;font-size:13px;color:var(--text)}
+.recent-time{font-size:11px;color:var(--text3)}
+.status-bar{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.status-bar .sep{color:var(--border2)}
+
+/* ===== STATE 2: PLANNING ===== */
+#state-plan{flex-direction:row}
+.left-sidebar{width:220px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 0;overflow-y:auto;background:var(--bg)}
+.sidebar-section{padding:0 12px;margin-bottom:20px}
+.sidebar-label{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;padding:0 4px;margin-bottom:8px}
+.mission-item{padding:8px 10px;border-radius:6px;cursor:pointer;transition:var(--transition);display:flex;flex-direction:column;gap:2px}
+.mission-item:hover{background:var(--card)}
+.mission-item.active{background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2)}
+.mission-item-title{font-size:12px;color:var(--text);font-weight:500;line-height:1.3}
+.mission-item.active .mission-item-title{color:var(--accent)}
+.mission-item-meta{font-size:10px;color:var(--text3)}
+.plan-center{flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:32px 48px}
+.plan-goal-bubble{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:28px;max-width:600px;align-self:flex-end}
+.plan-goal-label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.plan-goal-text{font-size:14px;color:var(--text)}
+.agent-thinking{display:flex;align-items:flex-start;gap:12px;margin-bottom:28px}
+.agent-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.avatar-atlas{background:rgba(168,85,247,.2);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.avatar-forge{background:rgba(59,130,246,.2);color:var(--blue);border:1px solid rgba(59,130,246,.3)}
+.avatar-lens{background:rgba(34,197,94,.2);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.avatar-scout{background:rgba(148,163,184,.2);color:var(--gray);border:1px solid rgba(148,163,184,.3)}
+.thinking-content{flex:1}
+.agent-name-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.agent-name{font-size:12px;font-weight:600;color:var(--text)}
+.agent-role-tag{font-size:10px;color:var(--text3);background:var(--card);padding:2px 7px;border-radius:99px;border:1px solid var(--border)}
+.thinking-dots{display:flex;gap:4px;align-items:center;padding:10px 0}
+.thinking-dots span{width:7px;height:7px;background:var(--purple);border-radius:50%;animation:bounce 1.2s infinite}
+.thinking-dots span:nth-child(2){animation-delay:.2s}
+.thinking-dots span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(-4px);opacity:1}}
+.plan-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px}
+.plan-card-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:16px}
+.task-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.task-row:last-child{border-bottom:none;padding-bottom:0}
+.task-num{width:22px;height:22px;border-radius:50%;background:var(--card2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0;margin-top:1px}
+.task-info{flex:1}
+.task-title{font-size:13px;color:var(--text);font-weight:500;margin-bottom:2px}
+.task-detail{font-size:11px;color:var(--text3)}
+.task-agent-badge{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;flex-shrink:0}
+.badge-forge{background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.25)}
+.badge-atlas{background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.25)}
+.badge-lens{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.badge-scout{background:rgba(148,163,184,.15);color:var(--gray);border:1px solid rgba(148,163,184,.25)}
+.complexity-badge{font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid var(--border);color:var(--text3);flex-shrink:0}
+.plan-actions{display:flex;gap:10px;align-items:center;margin-top:8px}
+.btn-primary{padding:10px 24px;background:var(--accent);color:white;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;transition:var(--transition);letter-spacing:-.01em}
+.btn-primary:hover{background:#ea6d0d;transform:translateY(-1px);box-shadow:0 4px 12px rgba(249,115,22,.3)}
+.btn-ghost{padding:10px 18px;background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;transition:var(--transition)}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text);background:var(--card)}
+
+/* ===== STATE 3: ACTIVE ===== */
+#state-active{flex-direction:column}
+.active-shell{flex:1;display:grid;grid-template-columns:220px 1fr 280px;overflow:hidden}
+.active-left{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;background:var(--bg)}
+.active-center{display:flex;flex-direction:column;overflow:hidden}
+.active-right{border-left:1px solid var(--border);overflow-y:auto;background:var(--bg)}
+.center-header{border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.center-title{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.mode-pills{display:flex;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:2px}
+.mode-pill{padding:4px 12px;border-radius:5px;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;transition:var(--transition)}
+.mode-pill.active{background:var(--card2);color:var(--text)}
+.stream-feed{flex:1;overflow-y:auto;padding:20px}
+.stream-msg{display:flex;gap:12px;margin-bottom:20px;opacity:0;animation:fadeSlide .35s ease forwards}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.stream-msg-body{flex:1}
+.stream-meta{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.stream-agent{font-size:12px;font-weight:700;color:var(--text)}
+.stream-time{font-size:11px;color:var(--text3)}
+.stream-tag{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:600;letter-spacing:.02em}
+.tag-coding{background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.25)}
+.tag-thinking{background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.25)}
+.tag-reviewing{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.tag-research{background:rgba(148,163,184,.15);color:var(--gray);border:1px solid rgba(148,163,184,.25)}
+.stream-text{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:8px}
+.code-block{background:#070b10;border:1px solid var(--border);border-radius:7px;padding:14px 16px;margin:8px 0;font-family:'SF Mono','Fira Code',monospace;font-size:11.5px;line-height:1.7;overflow-x:auto}
+.code-block .kw{color:#a855f7}
+.code-block .str{color:#22c55e}
+.code-block .fn{color:#60a5fa}
+.code-block .cm{color:#4b5563}
+.code-block .nn{color:#fb923c}
+.file-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.file-badge{display:flex;align-items:center;gap:5px;padding:3px 10px;background:var(--card);border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--text2)}
+.file-badge .added{color:var(--green)}
+.file-badge .removed{color:var(--red)}
+.approval-card{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.25);border-radius:var(--radius);padding:12px 14px;margin:10px 0;display:flex;align-items:flex-start;gap:12px}
+.approval-icon{color:var(--amber);font-size:16px;margin-top:1px}
+.approval-body{flex:1}
+.approval-title{font-size:12px;font-weight:600;color:var(--amber);margin-bottom:3px}
+.approval-text{font-size:12px;color:var(--text2);line-height:1.5}
+.approval-btns{display:flex;gap:6px;margin-top:10px}
+.btn-approve{padding:5px 14px;background:var(--green);color:white;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;transition:var(--transition)}
+.btn-approve:hover{opacity:.85}
+.btn-deny{padding:5px 14px;background:transparent;color:var(--text3);border:1px solid var(--border2);border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;transition:var(--transition)}
+.btn-deny:hover{color:var(--red);border-color:var(--red)}
+.center-input{border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;align-items:flex-end;flex-shrink:0}
+.center-input textarea{flex:1;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:13px;resize:none;min-height:40px;max-height:100px;outline:none;transition:var(--transition)}
+.center-input textarea:focus{border-color:var(--accent)}
+.center-input textarea::placeholder{color:var(--text3)}
+.input-send{padding:9px 16px;background:var(--card2);border:1px solid var(--border2);border-radius:7px;color:var(--text3);font-size:13px;cursor:pointer;transition:var(--transition)}
+.input-send:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Right sidebar panels */
+.r-panel{border-bottom:1px solid var(--border)}
+.r-panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;user-select:none}
+.r-panel-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em}
+.r-panel-chevron{color:var(--text3);font-size:12px;transition:transform .2s}
+.r-panel.collapsed .r-panel-chevron{transform:rotate(-90deg)}
+.r-panel-body{padding:10px 14px 14px;display:block;overflow:hidden}
+.r-panel.collapsed .r-panel-body{display:none}
+/* Kanban */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.kanban-col-title{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;text-align:center}
+.kanban-card{background:var(--card2);border:1px solid var(--border);border-radius:5px;padding:5px 7px;font-size:10px;color:var(--text2);line-height:1.4;margin-bottom:4px}
+.kanban-card.active-task{border-color:var(--accent);background:rgba(249,115,22,.06)}
+.kanban-card.done-task{opacity:.5}
+/* Agent cards in right panel */
+.r-agent-card{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.r-agent-card:last-child{border-bottom:none}
+.r-agent-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.r-agent-name{font-size:12px;font-weight:600;color:var(--text);flex:1}
+.r-agent-task{font-size:10px;color:var(--text3)}
+.r-badge{font-size:9px;padding:2px 7px;border-radius:99px;font-weight:700;flex-shrink:0}
+.rb-working{background:rgba(249,115,22,.15);color:var(--accent);border:1px solid rgba(249,115,22,.25)}
+.rb-reviewing{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.rb-idle{background:var(--card2);color:var(--text3);border:1px solid var(--border)}
+/* Approval panel */
+.r-approval{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:8px 10px;margin-bottom:8px}
+.r-approval-text{font-size:11px;color:var(--text2);line-height:1.4;margin-bottom:7px}
+.r-approval-btns{display:flex;gap:5px}
+/* Changes panel */
+.r-file{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
+.r-file:last-child{border-bottom:none}
+.r-file-name{font-size:11px;color:var(--text2)}
+.r-file-diff{display:flex;gap:5px;font-size:10px;font-weight:700}
+/* Cost panel */
+.cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cost-item{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:8px 10px}
+.cost-label{font-size:10px;color:var(--text3);margin-bottom:2px}
+.cost-value{font-size:14px;font-weight:700;color:var(--text)}
+
+/* Agents in left sidebar */
+.agent-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px}
+.agent-dot-left{width:7px;height:7px;border-radius:50%}
+.agent-left-name{font-size:12px;color:var(--text2);font-weight:500}
+.agent-left-status{font-size:10px;color:var(--text3);margin-left:auto}
+
+/* Terminal bar */
+.terminal-bar{background:#050810;border-top:1px solid var(--border);flex-shrink:0;overflow:hidden;transition:height .2s ease}
+.terminal-bar.collapsed{height:36px}
+.terminal-bar.expanded{height:160px}
+.terminal-header{height:36px;display:flex;align-items:center;gap:10px;padding:0 16px;cursor:pointer;user-select:none}
+.terminal-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+.terminal-tabs{display:flex;gap:2px;margin-left:8px}
+.terminal-tab{font-size:11px;color:var(--text3);padding:2px 10px;border-radius:4px;cursor:pointer}
+.terminal-tab.active{background:var(--card);color:var(--text2)}
+.terminal-body{padding:8px 16px;height:calc(100% - 36px);overflow-y:auto}
+.terminal-line{font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:#4ade80;line-height:1.8}
+.terminal-line .dim{color:var(--text3)}
+.terminal-line .err{color:var(--red)}
+
+/* ===== STATE 4: COMPLETE ===== */
+#state-complete{flex-direction:row}
+.complete-center{flex:1;overflow-y:auto;padding:32px 48px}
+.complete-summary{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:24px;text-align:center}
+.complete-icon{width:48px;height:48px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.complete-title{font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px}
+.complete-time{font-size:14px;color:var(--text3)}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}
+.stat-val{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.02em}
+.stat-label{font-size:11px;color:var(--text3);margin-top:2px}
+.deliverables{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px}
+.section-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px}
+.deliverable-file{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.deliverable-file:last-child{border-bottom:none}
+.del-name{font-size:13px;color:var(--text);font-weight:500}
+.del-diff{font-size:11px;font-weight:700;color:var(--green)}
+.diff-preview{background:#070b10;border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-top:6px;font-family:'SF Mono','Fira Code',monospace;font-size:11px;line-height:1.7}
+.diff-add{color:#4ade80}
+.diff-remove{color:var(--red)}
+.diff-ctx{color:var(--text3)}
+.agent-perf-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.perf-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px}
+.perf-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.perf-name{font-size:13px;font-weight:700;color:var(--text)}
+.perf-stats{display:flex;flex-direction:column;gap:6px}
+.perf-stat{display:flex;justify-content:space-between;font-size:12px}
+.perf-stat-label{color:var(--text3)}
+.perf-stat-val{color:var(--text);font-weight:600}
+.complete-actions{display:flex;gap:10px;margin-bottom:24px}
+.complete-input-wrap{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:10px}
+.complete-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--font);font-size:13px}
+.complete-input::placeholder{color:var(--text3)}
+
+/* ===== STATE 5: SETTINGS ===== */
+#state-settings{flex-direction:row}
+.settings-bg{flex:1;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.settings-bg-text{font-size:14px;color:var(--text3);text-align:center}
+.settings-panel{width:540px;border-left:1px solid var(--border);background:var(--card);display:flex;flex-direction:column;overflow:hidden}
+.settings-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.settings-title{font-size:16px;font-weight:700;color:var(--text)}
+.settings-close{width:28px;height:28px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:var(--transition)}
+.settings-close:hover{color:var(--text);border-color:var(--border2)}
+.settings-nav{display:flex;border-bottom:1px solid var(--border);padding:0 24px}
+.settings-tab{padding:10px 16px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:var(--transition);background:none;border-left:none;border-right:none;border-top:none}
+.settings-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.settings-body{flex:1;overflow-y:auto;padding:20px 24px}
+.settings-section{margin-bottom:24px}
+.settings-section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}
+.settings-field{margin-bottom:14px}
+.settings-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px}
+.settings-input{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;transition:var(--transition)}
+.settings-input:focus{border-color:var(--accent)}
+.settings-select{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:13px;outline:none}
+.template-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.template-card{padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px;cursor:pointer;transition:var(--transition)}
+.template-card:hover{border-color:var(--border2)}
+.template-card.selected{border-color:var(--accent);background:rgba(249,115,22,.06)}
+.template-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
+.template-desc{font-size:10px;color:var(--text3)}
+.api-field-row{display:flex;gap:8px}
+.api-test-btn{padding:8px 14px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap;transition:var(--transition)}
+.api-test-btn:hover{border-color:var(--green);color:var(--green)}
+.api-test-btn.success{border-color:var(--green);color:var(--green)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- Demo Navigation Bar -->
+<div id="demo-bar">
+  <span>ClawSuite</span>
+  <button class="demo-tab active" onclick="showState('home',this)">① Home</button>
+  <button class="demo-tab" onclick="showState('plan',this)">② Planning</button>
+  <button class="demo-tab" onclick="showState('active',this)">③ Active Mission</button>
+  <button class="demo-tab" onclick="showState('complete',this)">④ Complete</button>
+  <button class="demo-tab" onclick="showState('settings',this)">⑤ Settings</button>
+  <div class="spacer"></div>
+  <div class="demo-gear" onclick="showState('settings', document.querySelectorAll('.demo-tab')[4])">⚙</div>
+</div>
+
+<div id="app">
+
+<!-- ===== STATE 1: HOME ===== -->
+<div id="state-home" class="state active">
+  <div class="home-inner">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <div class="logo-text">Claw<span>Suite</span></div>
+    </div>
+    <div>
+      <div class="home-headline">What would you like your team to do?</div>
+      <div class="home-sub" style="margin-top:8px">Describe a goal. Atlas plans it. Your agents execute it.</div>
+    </div>
+    <div class="home-input-wrap">
+      <textarea class="home-textarea" placeholder="e.g. Build a landing page for ClawSuite with hero, pricing tiers, and FAQ..." rows="4"></textarea>
+      <div class="home-input-footer">
+        <div class="chip-row">
+          <div class="chip">Review PR</div>
+          <div class="chip">Build feature</div>
+          <div class="chip">Research topic</div>
+          <div class="chip">Fix bug</div>
+        </div>
+        <button class="send-btn" onclick="showState('plan', document.querySelectorAll('.demo-tab')[1])">Launch →</button>
+      </div>
+    </div>
+    <div class="recent-section">
+      <div class="recent-label">Recent missions</div>
+      <div class="recent-item">
+        <div class="status-dot dot-active"></div>
+        <div class="recent-title">Refactor auth module to use JWT refresh tokens</div>
+        <div class="recent-time">2m ago</div>
+      </div>
+      <div class="recent-item">
+        <div class="status-dot dot-done"></div>
+        <div class="recent-title">Write unit tests for PaymentService class</div>
+        <div class="recent-time">1h ago</div>
+      </div>
+      <div class="recent-item">
+        <div class="status-dot dot-done"></div>
+        <div class="recent-title">PR review: Add dark mode to dashboard</div>
+        <div class="recent-time">3h ago</div>
+      </div>
+      <div class="recent-item">
+        <div class="status-dot dot-idle"></div>
+        <div class="recent-title">Research best vector DB options for RAG pipeline</div>
+        <div class="recent-time">Yesterday</div>
+      </div>
+    </div>
+    <div class="status-bar">
+      <span style="color:var(--green)">●</span>&nbsp;3 agents ready
+      <span class="sep">·</span>
+      12 skills installed
+      <span class="sep">·</span>
+      <span>4 providers connected</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATE 2: PLANNING ===== -->
+<div id="state-plan" class="state">
+  <!-- Left sidebar -->
+  <div class="left-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Missions</div>
+      <div class="mission-item active">
+        <div class="mission-item-title">ClawSuite landing page</div>
+        <div class="mission-item-meta">Planning · just now</div>
+      </div>
+      <div class="mission-item">
+        <div class="mission-item-title">Auth module refactor</div>
+        <div class="mission-item-meta" style="color:var(--accent)">● Active · 2m</div>
+      </div>
+      <div class="mission-item">
+        <div class="mission-item-title">Unit tests — PaymentSvc</div>
+        <div class="mission-item-meta">✓ Done · 1h ago</div>
+      </div>
+      <div class="mission-item">
+        <div class="mission-item-title">PR review: dark mode</div>
+        <div class="mission-item-meta">✓ Done · 3h ago</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center -->
+  <div class="plan-center">
+    <div class="plan-goal-bubble">
+      <div class="plan-goal-label">Your goal</div>
+      <div class="plan-goal-text">Build a landing page for ClawSuite with hero, pricing tiers (Free/$20/$50), feature grid, testimonials, and FAQ</div>
+    </div>
+
+    <div class="agent-thinking">
+      <div class="agent-avatar avatar-atlas">A</div>
+      <div class="thinking-content">
+        <div class="agent-name-row">
+          <span class="agent-name">Atlas</span>
+          <span class="agent-role-tag">Planner</span>
+        </div>
+        <div class="thinking-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <div class="plan-card" id="plan-result">
+      <div class="plan-card-title">Mission plan · 5 tasks</div>
+      <div class="task-row">
+        <div class="task-num">1</div>
+        <div class="task-info">
+          <div class="task-title">Hero section</div>
+          <div class="task-detail">Full-width hero with headline, subtext, CTA button, and demo screenshot</div>
+        </div>
+        <div class="task-agent-badge badge-forge">Forge</div>
+        <div class="complexity-badge">Medium</div>
+      </div>
+      <div class="task-row">
+        <div class="task-num">2</div>
+        <div class="task-info">
+          <div class="task-title">Pricing component</div>
+          <div class="task-detail">Three-tier pricing cards (Free / $20 / $50) with feature comparison</div>
+        </div>
+        <div class="task-agent-badge badge-forge">Forge</div>
+        <div class="complexity-badge">High</div>
+      </div>
+      <div class="task-row">
+        <div class="task-num">3</div>
+        <div class="task-info">
+          <div class="task-title">Feature grid + testimonials</div>
+          <div class="task-detail">6-feature grid with icons, and 3 testimonial cards with avatars</div>
+        </div>
+        <div class="task-agent-badge badge-forge">Forge</div>
+        <div class="complexity-badge">Medium</div>
+      </div>
+      <div class="task-row">
+        <div class="task-num">4</div>
+        <div class="task-info">
+          <div class="task-title">FAQ accordion</div>
+          <div class="task-detail">Collapsible FAQ section with 8 common questions</div>
+        </div>
+        <div class="task-agent-badge badge-scout">Scout</div>
+        <div class="complexity-badge">Low</div>
+      </div>
+      <div class="task-row">
+        <div class="task-num">5</div>
+        <div class="task-info">
+          <div class="task-title">Final review &amp; accessibility pass</div>
+          <div class="task-detail">Review all components, check a11y, verify responsive breakpoints</div>
+        </div>
+        <div class="task-agent-badge badge-lens">Lens</div>
+        <div class="complexity-badge">Medium</div>
+      </div>
+    </div>
+
+    <div class="plan-actions">
+      <button class="btn-primary" onclick="showState('active', document.querySelectorAll('.demo-tab')[2])">🚀 Launch Mission</button>
+      <button class="btn-ghost">Edit tasks</button>
+      <span style="font-size:12px;color:var(--text3);margin-left:auto">Est. 8–12 min · ~$0.80–1.20</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATE 3: ACTIVE ===== -->
+<div id="state-active" class="state">
+  <div class="active-shell">
+    <!-- Left sidebar -->
+    <div class="active-left">
+      <div style="padding:16px 12px 8px">
+        <div class="sidebar-label">Missions</div>
+      </div>
+      <div style="padding:0 12px">
+        <div class="mission-item active">
+          <div class="mission-item-title">ClawSuite landing page</div>
+          <div class="mission-item-meta" style="color:var(--accent)">● Active · 3m 12s</div>
+        </div>
+        <div class="mission-item">
+          <div class="mission-item-title">Auth module refactor</div>
+          <div class="mission-item-meta" style="color:var(--accent)">● Active · 6m</div>
+        </div>
+        <div class="mission-item">
+          <div class="mission-item-title">Unit tests — PaymentSvc</div>
+          <div class="mission-item-meta">✓ Done · 1h ago</div>
+        </div>
+      </div>
+      <div style="padding:16px 12px 8px;margin-top:8px;border-top:1px solid var(--border)">
+        <div class="sidebar-label">Agents</div>
+      </div>
+      <div style="padding:0 12px">
+        <div class="agent-row">
+          <div class="agent-dot-left" style="background:var(--accent);box-shadow:0 0 5px var(--accent)"></div>
+          <div>
+            <div class="agent-left-name">Forge</div>
+            <div style="font-size:10px;color:var(--text3)">Writing code</div>
+          </div>
+          <div class="agent-left-status" style="color:var(--accent)">Working</div>
+        </div>
+        <div class="agent-row">
+          <div class="agent-dot-left" style="background:var(--purple);box-shadow:0 0 5px var(--purple)"></div>
+          <div>
+            <div class="agent-left-name">Atlas</div>
+            <div style="font-size:10px;color:var(--text3)">Monitoring plan</div>
+          </div>
+          <div class="agent-left-status" style="color:var(--purple)">Watching</div>
+        </div>
+        <div class="agent-row">
+          <div class="agent-dot-left" style="background:var(--border2)"></div>
+          <div>
+            <div class="agent-left-name">Lens</div>
+            <div style="font-size:10px;color:var(--text3)">Waiting on Task 3</div>
+          </div>
+          <div class="agent-left-status">Idle</div>
+        </div>
+        <div class="agent-row">
+          <div class="agent-dot-left" style="background:var(--green);box-shadow:0 0 5px var(--green)"></div>
+          <div>
+            <div class="agent-left-name">Scout</div>
+            <div style="font-size:10px;color:var(--text3)">Gathering FAQ content</div>
+          </div>
+          <div class="agent-left-status" style="color:var(--green)">Active</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center -->
+    <div class="active-center">
+      <div class="center-header">
+        <div class="center-title">ClawSuite landing page</div>
+        <div class="mode-pills">
+          <div class="mode-pill active">Stream</div>
+          <div class="mode-pill">Timeline</div>
+          <div class="mode-pill">Report</div>
+          <div class="mode-pill">Diffs</div>
+        </div>
+      </div>
+
+      <div class="stream-feed" id="stream-feed">
+        <!-- Messages injected by JS with staggered animation -->
+      </div>
+
+      <div class="center-input">
+        <textarea placeholder="Steer agents, ask questions, or give feedback..." rows="1"></textarea>
+        <button class="input-send">Send</button>
+      </div>
+    </div>
+
+    <!-- Right sidebar -->
+    <div class="active-right">
+      <!-- Tasks panel -->
+      <div class="r-panel" id="panel-tasks">
+        <div class="r-panel-header" onclick="togglePanel('panel-tasks')">
+          <span class="r-panel-title">Tasks</span>
+          <span class="r-panel-chevron">▾</span>
+        </div>
+        <div class="r-panel-body">
+          <div class="kanban">
+            <div>
+              <div class="kanban-col-title">Queue</div>
+              <div class="kanban-card">FAQ accordion</div>
+              <div class="kanban-card">Final review</div>
+            </div>
+            <div>
+              <div class="kanban-col-title">Active</div>
+              <div class="kanban-card active-task">Hero section</div>
+            </div>
+            <div>
+              <div class="kanban-col-title">Review</div>
+              <div class="kanban-card">Pricing cards</div>
+            </div>
+            <div>
+              <div class="kanban-col-title">Done</div>
+              <div class="kanban-card done-task">Research</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agents panel -->
+      <div class="r-panel" id="panel-agents">
+        <div class="r-panel-header" onclick="togglePanel('panel-agents')">
+          <span class="r-panel-title">Agents</span>
+          <span class="r-panel-chevron">▾</span>
+        </div>
+        <div class="r-panel-body">
+          <div class="r-agent-card">
+            <div class="r-agent-dot" style="background:var(--accent)"></div>
+            <div>
+              <div class="r-agent-name">Forge</div>
+              <div class="r-agent-task">Creating hero.tsx</div>
+            </div>
+            <div class="r-badge rb-working">Working</div>
+          </div>
+          <div class="r-agent-card">
+            <div class="r-agent-dot" style="background:var(--purple)"></div>
+            <div>
+              <div class="r-agent-name">Atlas</div>
+              <div class="r-agent-task">Monitoring</div>
+            </div>
+            <div class="r-badge rb-idle">Watching</div>
+          </div>
+          <div class="r-agent-card">
+            <div class="r-agent-dot" style="background:var(--border2)"></div>
+            <div>
+              <div class="r-agent-name">Lens</div>
+              <div class="r-agent-task">Waiting for Task 3</div>
+            </div>
+            <div class="r-badge rb-idle">Idle</div>
+          </div>
+          <div class="r-agent-card">
+            <div class="r-agent-dot" style="background:var(--green)"></div>
+            <div>
+              <div class="r-agent-name">Scout</div>
+              <div class="r-agent-task">Researching FAQ</div>
+            </div>
+            <div class="r-badge rb-reviewing">Active</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Approvals panel -->
+      <div class="r-panel" id="panel-approvals">
+        <div class="r-panel-header" onclick="togglePanel('panel-approvals')">
+          <span class="r-panel-title">Approvals <span style="background:var(--amber);color:#000;border-radius:99px;padding:1px 6px;font-size:9px;font-weight:800;margin-left:4px">2</span></span>
+          <span class="r-panel-chevron">▾</span>
+        </div>
+        <div class="r-panel-body">
+          <div class="r-approval">
+            <div class="r-approval-text">Hero CTA links to <code style="font-size:10px;color:var(--amber)">/signup</code> but that page doesn't exist yet. Create stub or link elsewhere?</div>
+            <div class="r-approval-btns">
+              <button class="btn-approve" onclick="this.closest('.r-approval').style.opacity='.4'">Approve</button>
+              <button class="btn-deny">Deny</button>
+            </div>
+          </div>
+          <div class="r-approval">
+            <div class="r-approval-text">Add analytics tracking script (PostHog)? Will inject in <code style="font-size:10px;color:var(--amber)">layout.tsx</code>.</div>
+            <div class="r-approval-btns">
+              <button class="btn-approve" onclick="this.closest('.r-approval').style.opacity='.4'">Approve</button>
+              <button class="btn-deny">Deny</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Changes panel -->
+      <div class="r-panel" id="panel-changes">
+        <div class="r-panel-header" onclick="togglePanel('panel-changes')">
+          <span class="r-panel-title">Changes</span>
+          <span class="r-panel-chevron">▾</span>
+        </div>
+        <div class="r-panel-body">
+          <div class="r-file">
+            <span class="r-file-name">app/page.tsx</span>
+            <div class="r-file-diff"><span style="color:var(--green)">+84</span><span style="color:var(--red)">-2</span></div>
+          </div>
+          <div class="r-file">
+            <span class="r-file-name">components/hero.tsx</span>
+            <div class="r-file-diff"><span style="color:var(--green)">+142</span><span style="color:var(--red)">-0</span></div>
+          </div>
+          <div class="r-file">
+            <span class="r-file-name">components/pricing.tsx</span>
+            <div class="r-file-diff"><span style="color:var(--green)">+209</span><span style="color:var(--red)">-0</span></div>
+          </div>
+          <div class="r-file">
+            <span class="r-file-name">styles/landing.css</span>
+            <div class="r-file-diff"><span style="color:var(--green)">+61</span><span style="color:var(--red)">-0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cost panel -->
+      <div class="r-panel" id="panel-cost">
+        <div class="r-panel-header" onclick="togglePanel('panel-cost')">
+          <span class="r-panel-title">Cost</span>
+          <span class="r-panel-chevron">▾</span>
+        </div>
+        <div class="r-panel-body">
+          <div class="cost-grid">
+            <div class="cost-item">
+              <div class="cost-label">Tokens</div>
+              <div class="cost-value">28.4k</div>
+            </div>
+            <div class="cost-item">
+              <div class="cost-label">Cost</div>
+              <div class="cost-value">$0.41</div>
+            </div>
+            <div class="cost-item">
+              <div class="cost-label">Duration</div>
+              <div class="cost-value">3m 12s</div>
+            </div>
+            <div class="cost-item">
+              <div class="cost-label">Model</div>
+              <div class="cost-value" style="font-size:11px">gpt-5.3</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terminal bar -->
+  <div class="terminal-bar collapsed" id="terminal-bar">
+    <div class="terminal-header" onclick="toggleTerminal()">
+      <span class="terminal-title">Terminal</span>
+      <div class="terminal-tabs">
+        <span class="terminal-tab active">forge@hero</span>
+        <span class="terminal-tab">scout@faq</span>
+        <span class="terminal-tab">atlas</span>
+      </div>
+      <div style="margin-left:auto;font-size:11px;color:var(--text3)" id="term-toggle-label">▲ expand</div>
+    </div>
+    <div class="terminal-body">
+      <div class="terminal-line"><span class="dim">$</span> npx create-next-app@latest clawsuite-landing --ts --tailwind --app</div>
+      <div class="terminal-line" style="color:var(--green)">✓ Creating project in /workspace/clawsuite-landing</div>
+      <div class="terminal-line"><span class="dim">$</span> cd clawsuite-landing && code components/hero.tsx</div>
+      <div class="terminal-line"><span class="dim">writing</span> components/hero.tsx <span style="color:var(--accent)">142 lines</span></div>
+      <div class="terminal-line"><span class="dim">$</span> npx tsc --noEmit</div>
+      <div class="terminal-line" style="color:var(--green)">✓ No TypeScript errors</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATE 4: COMPLETE ===== -->
+<div id="state-complete" class="state">
+  <div class="complete-center">
+    <div class="complete-summary">
+      <div class="complete-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="complete-title">Mission complete</div>
+      <div class="complete-time">Finished in 8 min 34 sec</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-val">5</div>
+        <div class="stat-label">Tasks completed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">2</div>
+        <div class="stat-label">Reviews passed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">$0.87</div>
+        <div class="stat-label">Total cost</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">42k</div>
+        <div class="stat-label">Tokens used</div>
+      </div>
+    </div>
+
+    <div class="deliverables">
+      <div class="section-title">Key deliverables</div>
+      <div class="deliverable-file">
+        <div>
+          <div class="del-name">app/page.tsx</div>
+          <div class="diff-preview" style="margin-top:6px">
+            <div class="diff-add">+ import Hero from '@/components/hero'</div>
+            <div class="diff-add">+ import Pricing from '@/components/pricing'</div>
+            <div class="diff-add">+ import Features from '@/components/features'</div>
+            <div class="diff-add">+ import FAQ from '@/components/faq'</div>
+            <div class="diff-ctx">  export default function Home() {</div>
+            <div class="diff-add">+   return &lt;main&gt;&lt;Hero /&gt;&lt;Features /&gt;&lt;Pricing /&gt;&lt;FAQ /&gt;&lt;/main&gt;</div>
+            <div class="diff-ctx">  }</div>
+          </div>
+        </div>
+        <div class="del-diff">+84 lines</div>
+      </div>
+      <div class="deliverable-file">
+        <div>
+          <div class="del-name">components/hero.tsx</div>
+          <div class="diff-preview" style="margin-top:6px">
+            <div class="diff-add">+ export function Hero() {</div>
+            <div class="diff-add">+   return (</div>
+            <div class="diff-add">+     &lt;section className="hero"&gt;</div>
+            <div class="diff-add">+       &lt;h1&gt;Ship faster with AI agents&lt;/h1&gt;</div>
+            <div class="diff-add">+       &lt;Button href="/signup"&gt;Get started free&lt;/Button&gt;</div>
+            <div class="diff-add">+     &lt;/section&gt;</div>
+            <div class="diff-add">+   )</div>
+            <div class="diff-add">+ }</div>
+          </div>
+        </div>
+        <div class="del-diff">+142 lines</div>
+      </div>
+      <div class="deliverable-file">
+        <span class="del-name">components/pricing.tsx</span>
+        <div class="del-diff">+209 lines</div>
+      </div>
+      <div class="deliverable-file">
+        <span class="del-name">components/features.tsx</span>
+        <div class="del-diff">+118 lines</div>
+      </div>
+      <div class="deliverable-file">
+        <span class="del-name">components/faq.tsx</span>
+        <div class="del-diff">+96 lines</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-bottom:12px">Agent performance</div>
+    <div class="agent-perf-row">
+      <div class="perf-card">
+        <div class="perf-header">
+          <div class="agent-avatar avatar-forge" style="width:28px;height:28px;font-size:12px">F</div>
+          <div class="perf-name">Forge</div>
+        </div>
+        <div class="perf-stats">
+          <div class="perf-stat"><span class="perf-stat-label">Tasks</span><span class="perf-stat-val">3 completed</span></div>
+          <div class="perf-stat"><span class="perf-stat-label">Tokens</span><span class="perf-stat-val">28,420</span></div>
+          <div class="perf-stat"><span class="perf-stat-label">Time</span><span class="perf-stat-val">6m 18s</span></div>
+        </div>
+      </div>
+      <div class="perf-card">
+        <div class="perf-header">
+          <div class="agent-avatar avatar-lens" style="width:28px;height:28px;font-size:12px">L</div>
+          <div class="perf-name">Lens</div>
+        </div>
+        <div class="perf-stats">
+          <div class="perf-stat"><span class="perf-stat-label">Tasks</span><span class="perf-stat-val">1 review</span></div>
+          <div class="perf-stat"><span class="perf-stat-label">Tokens</span><span class="perf-stat-val">8,140</span></div>
+          <div class="perf-stat"><span class="perf-stat-label">Time</span><span class="perf-stat-val">1m 42s</span></div>
+        </div>
+      </div>
+      <div class="perf-card">
+        <div class="perf-header">
+          <div class="agent-avatar avatar-scout" style="width:28px;height:28px;font-size:12px">S</div>
+          <div class="perf-name">Scout</div>
+        </div>
+        <div class="perf-stats">
+          <div class="perf-stat"><span class="perf-stat-label">Tasks</span><span class="perf-stat-val">1 research</span></div>
+          <div class="perf-stat"><span class="perf-stat-label">Tokens</span><span class="perf-stat-val">5,440</span></div>
+          <div class="perf-stat"><span class="perf-stat-label">Time</span><span class="perf-stat-val">0m 34s</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="complete-actions">
+      <button class="btn-primary">Open in Editor</button>
+      <button class="btn-ghost">Create PR</button>
+    </div>
+
+    <div class="complete-input-wrap">
+      <input class="complete-input" placeholder="Start another mission or iterate on this one...">
+      <button class="send-btn">Go →</button>
+    </div>
+  </div>
+
+  <!-- Right sidebar - complete state -->
+  <div class="active-right" style="width:280px">
+    <div class="r-panel">
+      <div class="r-panel-header">
+        <span class="r-panel-title">All tasks done</span>
+        <span style="font-size:10px;color:var(--green)">✓ 5/5</span>
+      </div>
+      <div class="r-panel-body">
+        <div class="kanban" style="grid-template-columns:1fr">
+          <div>
+            <div class="kanban-col-title" style="color:var(--green)">Done</div>
+            <div class="kanban-card done-task">Hero section</div>
+            <div class="kanban-card done-task">Pricing component</div>
+            <div class="kanban-card done-task">Feature grid</div>
+            <div class="kanban-card done-task">FAQ accordion</div>
+            <div class="kanban-card done-task">Final review</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="r-panel">
+      <div class="r-panel-header">
+        <span class="r-panel-title">Final cost</span>
+      </div>
+      <div class="r-panel-body">
+        <div class="cost-grid">
+          <div class="cost-item"><div class="cost-label">Tokens</div><div class="cost-value">42k</div></div>
+          <div class="cost-item"><div class="cost-label">Cost</div><div class="cost-value">$0.87</div></div>
+          <div class="cost-item"><div class="cost-label">Duration</div><div class="cost-value">8m 34s</div></div>
+          <div class="cost-item"><div class="cost-label">Agents</div><div class="cost-value">3</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="r-panel">
+      <div class="r-panel-header">
+        <span class="r-panel-title">Approvals</span>
+      </div>
+      <div class="r-panel-body">
+        <div style="font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:var(--green)">✓</span>
+            <span>Hero CTA — approved</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:var(--red)">✕</span>
+            <span>Analytics script — denied</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATE 5: SETTINGS ===== -->
+<div id="state-settings" class="state">
+  <div class="settings-bg">
+    <div class="settings-bg-text">
+      <div style="font-size:32px;margin-bottom:12px">⚙</div>
+      <div style="font-size:15px;color:var(--text2);font-weight:500;margin-bottom:6px">Workspace settings</div>
+      <div style="font-size:13px">Configure agents, providers, and skills</div>
+    </div>
+  </div>
+  <div class="settings-panel">
+    <div class="settings-header">
+      <div class="settings-title">Settings</div>
+      <button class="settings-close" onclick="showState('home', document.querySelectorAll('.demo-tab')[0])">✕</button>
+    </div>
+    <div class="settings-nav">
+      <button class="settings-tab active" onclick="switchSettingsTab(this)">Agents</button>
+      <button class="settings-tab" onclick="switchSettingsTab(this)">Teams</button>
+      <button class="settings-tab" onclick="switchSettingsTab(this)">Providers</button>
+      <button class="settings-tab" onclick="switchSettingsTab(this)">Skills</button>
+      <button class="settings-tab" onclick="switchSettingsTab(this)">General</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-section">
+        <div class="settings-section-title">Agent configuration</div>
+        <div class="settings-field">
+          <div class="settings-label">Agent name</div>
+          <input class="settings-input" value="Forge" type="text">
+        </div>
+        <div class="settings-field">
+          <div class="settings-label">Model</div>
+          <select class="settings-select">
+            <option>gpt-5.3-codex (recommended)</option>
+            <option>claude-sonnet-4-6</option>
+            <option>claude-opus-4</option>
+            <option>gemini-2.5-pro</option>
+            <option>ollama/qwen3:8b (local)</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <div class="settings-label">Role</div>
+          <select class="settings-select">
+            <option>Coder</option>
+            <option>Planner</option>
+            <option>Reviewer</option>
+            <option>Researcher</option>
+            <option>Custom</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">System prompt template</div>
+        <div class="template-grid">
+          <div class="template-card selected">
+            <div class="template-name">Full-Stack Coder</div>
+            <div class="template-desc">React, Next.js, TypeScript, APIs</div>
+          </div>
+          <div class="template-card">
+            <div class="template-name">Backend Engineer</div>
+            <div class="template-desc">Node.js, databases, REST/GraphQL</div>
+          </div>
+          <div class="template-card">
+            <div class="template-name">DevOps / CI</div>
+            <div class="template-desc">Docker, GitHub Actions, infra</div>
+          </div>
+          <div class="template-card">
+            <div class="template-name">Code Reviewer</div>
+            <div class="template-desc">PR reviews, security, style</div>
+          </div>
+          <div class="template-card">
+            <div class="template-name">Researcher</div>
+            <div class="template-desc">Web research, summarization</div>
+          </div>
+          <div class="template-card">
+            <div class="template-name">Test Engineer</div>
+            <div class="template-desc">Unit, integration, e2e tests</div>
+          </div>
+          <div class="template-card">
+            <div class="template-name">Technical Writer</div>
+            <div class="template-desc">Docs, READMEs, changelogs</div>
+          </div>
+          <div class="template-card">
+            <div class="template-name">Data Engineer</div>
+            <div class="template-desc">SQL, Python, ETL pipelines</div>
+          </div>
+          <div class="template-card">
+            <div class="template-name">Mobile (iOS/Android)</div>
+            <div class="template-desc">Swift, Kotlin, React Native</div>
+          </div>
+          <div class="template-card">
+            <div class="template-name">Security Auditor</div>
+            <div class="template-desc">Vulnerabilities, OWASP, secrets</div>
+          </div>
+          <div class="template-card">
+            <div class="template-name">UI/UX Designer</div>
+            <div class="template-desc">Tailwind, accessibility, design systems</div>
+          </div>
+          <div class="template-card">
+            <div class="template-name">ML Engineer</div>
+            <div class="template-desc">Python, PyTorch, model training</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section" style="margin-top:8px">
+        <div class="settings-section-title">Providers</div>
+        <div class="settings-field">
+          <div class="settings-label">OpenAI API Key</div>
+          <div class="api-field-row">
+            <input class="settings-input" type="password" value="sk-proj-••••••••••••••••••" style="flex:1">
+            <button class="api-test-btn success">✓ Connected</button>
+          </div>
+        </div>
+        <div class="settings-field">
+          <div class="settings-label">Anthropic API Key</div>
+          <div class="api-field-row">
+            <input class="settings-input" type="password" value="sk-ant-••••••••••••••••••" style="flex:1">
+            <button class="api-test-btn success">✓ Connected</button>
+          </div>
+        </div>
+        <div class="settings-field">
+          <div class="settings-label">Google AI API Key</div>
+          <div class="api-field-row">
+            <input class="settings-input" type="password" placeholder="AIza..." style="flex:1">
+            <button class="api-test-btn" onclick="this.textContent='✓ Connected';this.className='api-test-btn success'">Test</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// State management
+function showState(stateId, tabEl) {
+  document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+  const el = document.getElementById('state-' + stateId);
+  if (el) el.classList.add('active');
+  if (tabEl) tabEl.classList.add('active');
+  if (stateId === 'active') startStream();
+}
+
+// Panel collapse
+function togglePanel(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+// Terminal
+function toggleTerminal() {
+  const bar = document.getElementById('terminal-bar');
+  const label = document.getElementById('term-toggle-label');
+  if (bar.classList.contains('collapsed')) {
+    bar.classList.remove('collapsed');
+    bar.classList.add('expanded');
+    label.textContent = '▼ collapse';
+  } else {
+    bar.classList.remove('expanded');
+    bar.classList.add('collapsed');
+    label.textContent = '▲ expand';
+  }
+}
+
+// Settings tabs
+function switchSettingsTab(el) {
+  document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Template card selection
+document.querySelectorAll('.template-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+  });
+});
+
+// Stream messages
+const streamMessages = [
+  {
+    agent: 'Atlas', avatar: 'A', cls: 'avatar-atlas', role: 'Planner', tag: 'thinking', tagCls: 'tag-thinking', delay: 100,
+    text: 'Breaking down your mission into 5 tasks across Forge, Scout, and Lens. Starting with research phase, then parallel hero + pricing build.',
+    code: null, files: [], approval: null
+  },
+  {
+    agent: 'Scout', avatar: 'S', cls: 'avatar-scout', role: 'Researcher', tag: 'researching', tagCls: 'tag-research', delay: 800,
+    text: 'Pulling best practices for SaaS landing pages. Analyzing top-performing pricing structures and FAQ patterns.',
+    code: null, files: [], approval: null
+  },
+  {
+    agent: 'Forge', avatar: 'F', cls: 'avatar-forge', role: 'Coder', tag: 'writing code', tagCls: 'tag-coding', delay: 1600,
+    text: 'Starting with the Hero component. Setting up full-width layout with gradient background and animated headline.',
+    code: `<span class="kw">export</span> <span class="kw">function</span> <span class="fn">Hero</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="nn">section</span> <span class="fn">className</span>=<span class="str">"relative overflow-hidden bg-[#0a0a0f]"</span>&gt;
+      &lt;<span class="nn">div</span> <span class="fn">className</span>=<span class="str">"max-w-5xl mx-auto px-6 py-24 text-center"</span>&gt;
+        &lt;<span class="nn">h1</span> <span class="fn">className</span>=<span class="str">"text-6xl font-bold tracking-tight"</span>&gt;
+          Ship faster with <span class="str">&lt;span className="text-orange-500"&gt;</span>AI agents<span class="str">&lt;/span&gt;</span>
+        &lt;/<span class="nn">h1</span>&gt;
+        &lt;<span class="nn">Button</span> <span class="fn">href</span>=<span class="str">"/signup"</span>&gt;Get started free&lt;/<span class="nn">Button</span>&gt;
+      &lt;/<span class="nn">div</span>&gt;
+    &lt;/<span class="nn">section</span>&gt;
+  )
+}`,
+    files: [
+      {name: 'components/hero.tsx', added: '+142', removed: null}
+    ],
+    approval: null
+  },
+  {
+    agent: 'Forge', avatar: 'F', cls: 'avatar-forge', role: 'Coder', tag: 'writing code', tagCls: 'tag-coding', delay: 2800,
+    text: 'Hero done. Moving to pricing component — three-tier cards with highlighted "Pro" tier.',
+    code: `<span class="cm">// Pricing tiers config</span>
+<span class="kw">const</span> <span class="fn">tiers</span> = [
+  { name: <span class="str">'Free'</span>, price: <span class="str">'$0'</span>, features: [<span class="str">'3 agents'</span>, <span class="str">'10 missions/mo'</span>] },
+  { name: <span class="str">'Pro'</span>, price: <span class="str">'$20'</span>, highlighted: <span class="kw">true</span>,
+    features: [<span class="str">'10 agents'</span>, <span class="str">'Unlimited missions'</span>, <span class="str">'Priority support'</span>] },
+  { name: <span class="str">'Team'</span>, price: <span class="str">'$50'</span>,
+    features: [<span class="str">'Unlimited agents'</span>, <span class="str">'Custom models'</span>, <span class="str">'SSO + audit log'</span>] },
+]`,
+    files: [
+      {name: 'components/pricing.tsx', added: '+209', removed: null}
+    ],
+    approval: null
+  },
+  {
+    agent: 'Forge', avatar: 'F', cls: 'avatar-forge', role: 'Coder', tag: 'writing code', tagCls: 'tag-coding', delay: 3800,
+    text: 'Hero CTA routes to /signup — that route doesn\'t exist yet. Need your call before I continue.',
+    code: null,
+    files: [],
+    approval: {
+      title: 'Approval needed',
+      text: 'Hero CTA links to /signup but that page doesn\'t exist. Should I create a stub page, or link to /#pricing instead?'
+    }
+  },
+  {
+    agent: 'Scout', avatar: 'S', cls: 'avatar-scout', role: 'Researcher', tag: 'researching', tagCls: 'tag-research', delay: 4600,
+    text: 'FAQ research complete. Found 8 high-frequency questions from similar SaaS products. Handing off to Forge.',
+    code: null,
+    files: [{name: 'data/faq-research.json', added: '+47', removed: null}],
+    approval: null
+  },
+  {
+    agent: 'Lens', avatar: 'L', cls: 'avatar-lens', role: 'Reviewer', tag: 'reviewing', tagCls: 'tag-reviewing', delay: 5400,
+    text: 'Running accessibility audit on hero.tsx and pricing.tsx. All headings structured correctly. Color contrast ratios pass WCAG AA. One issue: missing aria-label on CTA button.',
+    code: null,
+    files: [],
+    approval: null
+  },
+];
+
+let streamStarted = false;
+function startStream() {
+  if (streamStarted) return;
+  streamStarted = true;
+  const feed = document.getElementById('stream-feed');
+  feed.innerHTML = '';
+  streamMessages.forEach((msg, i) => {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'stream-msg';
+      el.style.animationDelay = '0ms';
+      let inner = `
+        <div class="agent-avatar ${msg.cls}">${msg.avatar}</div>
+        <div class="stream-msg-body">
+          <div class="stream-meta">
+            <span class="stream-agent">${msg.agent}</span>
+            <span class="agent-role-tag">${msg.role}</span>
+            <span class="stream-time">${getRelTime(i)}</span>
+            <span class="stream-tag ${msg.tagCls}">${msg.tag}</span>
+          </div>
+          <div class="stream-text">${msg.text}</div>`;
+      if (msg.code) {
+        inner += `<div class="code-block">${msg.code}</div>`;
+      }
+      if (msg.files && msg.files.length) {
+        inner += '<div class="file-badges">';
+        msg.files.forEach(f => {
+          inner += `<div class="file-badge"><span>📄 ${f.name}</span>${f.added ? `<span class="added">${f.added}</span>` : ''}${f.removed ? `<span class="removed">${f.removed}</span>` : ''}</div>`;
+        });
+        inner += '</div>';
+      }
+      if (msg.approval) {
+        inner += `
+          <div class="approval-card">
+            <div class="approval-icon">⚠</div>
+            <div class="approval-body">
+              <div class="approval-title">${msg.approval.title}</div>
+              <div class="approval-text">${msg.approval.text}</div>
+              <div class="approval-btns">
+                <button class="btn-approve" onclick="this.closest('.approval-card').style.opacity='.4'">Approve</button>
+                <button class="btn-deny">Deny</button>
+              </div>
+            </div>
+          </div>`;
+      }
+      inner += '</div>';
+      el.innerHTML = inner;
+      feed.appendChild(el);
+      feed.scrollTop = feed.scrollHeight;
+    }, msg.delay);
+  });
+}
+
+function getRelTime(i) {
+  const times = ['just now', '12s ago', '1m 04s ago', '2m 21s ago', '3m 08s ago', '3m 44s ago', '4m 12s ago'];
+  return times[i] || '';
+}
+
+// Mode pills
+document.querySelectorAll('.mode-pill').forEach(pill => {
+  pill.addEventListener('click', function() {
+    this.closest('.mode-pills').querySelectorAll('.mode-pill').forEach(p => p.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
