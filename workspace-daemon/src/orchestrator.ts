@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { existsSync, mkdirSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import { AgentRunner } from "./agent-runner";
 import { Scheduler } from "./scheduler";
 import { Tracker } from "./tracker";
@@ -344,7 +345,9 @@ export class Orchestrator extends EventEmitter {
     if (!existsSync(projectPath)) {
       try {
         mkdirSync(projectPath, { recursive: true });
-        console.log(`[orchestrator] Created workspace directory: ${projectPath}`);
+        // Initialize git repo so Codex adapter can work
+        execSync("git init && git commit --allow-empty -m 'init'", { cwd: projectPath, stdio: "ignore" });
+        console.log(`[orchestrator] Created workspace directory + git init: ${projectPath}`);
       } catch (err) {
         const taskRun =
           options?.taskRun ??
@@ -399,6 +402,7 @@ export class Orchestrator extends EventEmitter {
     this.tracker.logAuditEvent("task.started", taskRun.id, "task_run");
     this.emit("dispatch", { taskId: task.id, runId: taskRun.id });
 
+    console.log(`[orchestrator] Dispatching task "${task.name}" to ${agent.id} (${agent.adapter_type}) at ${projectPath}`);
     try {
       const { result, workspacePath, checkpoint, autoApproved } = await this.agentRunner.runTask({
         project,
