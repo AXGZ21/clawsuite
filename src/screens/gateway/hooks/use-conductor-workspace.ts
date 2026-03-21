@@ -86,9 +86,17 @@ export type WorkspaceProject = {
 
 async function workspaceJson<T = unknown>(
   input: string,
-  init?: RequestInit,
+  init?: RequestInit & { timeoutMs?: number },
 ): Promise<T> {
-  const response = await fetch(input, init)
+  const timeoutMs = init?.timeoutMs ?? 30_000
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  let response: Response
+  try {
+    response = await fetch(input, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
   const text = await response.text()
 
   let parsed: unknown = null
@@ -111,11 +119,12 @@ async function workspaceJson<T = unknown>(
   )
 }
 
-async function workspacePost(input: string, body?: unknown): Promise<unknown> {
+async function workspacePost(input: string, body?: unknown, timeoutMs?: number): Promise<unknown> {
   return workspaceJson(input, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: body !== undefined ? JSON.stringify(body) : '{}',
+    timeoutMs,
   })
 }
 
@@ -288,7 +297,7 @@ export function useConductorWorkspace(options?: {
       const payload = await workspacePost('/api/workspace/decompose', {
         goal,
         ...(projectId ? { project_id: projectId } : {}),
-      })
+      }, 60_000)
       return parseDecomposeResult(payload)
     },
   })

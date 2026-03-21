@@ -9,7 +9,7 @@ import {
   Search01Icon,
   TaskDone01Icon,
 } from '@hugeicons/core-free-icons'
-import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { TerminalWorkspace } from '@/components/terminal/terminal-workspace'
@@ -240,23 +240,16 @@ export function Conductor() {
     () => taskRuns.filter((r) => r.status === 'running' || r.status === 'active'),
     [taskRuns],
   )
-  const liveOutputQueries = useQueries({
-    queries: runningRuns.map((run) => ({
-      queryKey: ['workspace', 'task-run-live-output', run.id],
-      queryFn: async () =>
-        queryClient.getQueryData<string[]>(['workspace', 'task-run-live-output', run.id]) ?? [],
-      initialData:
-        queryClient.getQueryData<string[]>(['workspace', 'task-run-live-output', run.id]) ?? [],
-      staleTime: Number.POSITIVE_INFINITY,
-    })),
-  })
   const liveOutputByRunId = useMemo(() => {
     const map = new Map<string, string[]>()
-    runningRuns.forEach((run, i) => {
-      map.set(run.id, (liveOutputQueries[i]?.data ?? []).slice(-8))
-    })
+    for (const run of runningRuns) {
+      const cached = queryClient.getQueryData<string[]>(['workspace', 'task-run-live-output', run.id])
+      if (cached && cached.length > 0) {
+        map.set(run.id, cached.slice(-8))
+      }
+    }
     return map
-  }, [liveOutputQueries, runningRuns])
+  }, [runningRuns, queryClient])
 
   // Map task_id → run for quick lookup
   const runByTaskId = useMemo(
