@@ -164,15 +164,26 @@ export class Decomposer {
     }
 
     if (!rawResponse) {
+      let cliAvailable = false;
+
       try {
-        console.log("[decomposer] SDK unavailable, falling back to claude CLI");
-        const { stdout } = await execFileAsync("claude", ["--print", "-p", buildCliPrompt(goal, context)], {
-          maxBuffer: 1024 * 1024,
-          timeout: 120_000,
-        });
-        rawResponse = stdout.trim();
-      } catch (error) {
-        cliError = error;
+        await execFileAsync("which", ["claude"], { timeout: 3_000 });
+        cliAvailable = true;
+      } catch {
+        // Skip the CLI fallback when the binary is not installed.
+      }
+
+      if (cliAvailable) {
+        try {
+          console.log("[decomposer] SDK unavailable, falling back to claude CLI");
+          const { stdout } = await execFileAsync("claude", ["--print", "-p", buildCliPrompt(goal, context)], {
+            maxBuffer: 1024 * 1024,
+            timeout: 15_000,
+          });
+          rawResponse = stdout.trim();
+        } catch (error) {
+          cliError = error;
+        }
       }
     }
 
