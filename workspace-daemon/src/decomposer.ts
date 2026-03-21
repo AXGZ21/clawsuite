@@ -143,7 +143,20 @@ export class Decomposer {
     let rawResponse = "";
     let cliError: unknown = null;
 
-    if (process.env.ANTHROPIC_API_KEY) {
+    // Try Codex CLI first (free via OAuth), then Anthropic SDK as fallback
+    try {
+      console.log("[decomposer] Using Codex CLI");
+      const { stdout } = await execFileAsync("codex", ["exec", "--full-auto", "-q", prompt], {
+        maxBuffer: 1024 * 1024,
+        timeout: 60_000,
+      });
+      rawResponse = stdout.trim();
+    } catch (error) {
+      console.log("[decomposer] Codex CLI failed, trying Anthropic SDK");
+      cliError = error;
+    }
+
+    if (!rawResponse && process.env.ANTHROPIC_API_KEY) {
       try {
         console.log("[decomposer] Using Anthropic SDK");
         const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -159,31 +172,7 @@ export class Decomposer {
           throw new Error("Anthropic SDK returned no text content");
         }
       } catch {
-        // Fall back to the Claude CLI below.
-      }
-    }
-
-    if (!rawResponse) {
-      let cliAvailable = false;
-
-      try {
-        await execFileAsync("which", ["claude"], { timeout: 3_000 });
-        cliAvailable = true;
-      } catch {
-        // Skip the CLI fallback when the binary is not installed.
-      }
-
-      if (cliAvailable) {
-        try {
-          console.log("[decomposer] SDK unavailable, falling back to claude CLI");
-          const { stdout } = await execFileAsync("claude", ["--print", "-p", buildCliPrompt(goal, context)], {
-            maxBuffer: 1024 * 1024,
-            timeout: 15_000,
-          });
-          rawResponse = stdout.trim();
-        } catch (error) {
-          cliError = error;
-        }
+        // Fall through to single-task fallback
       }
     }
 
