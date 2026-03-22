@@ -36,6 +36,8 @@ import { ReviewQueueScreen } from '@/screens/review/review-queue-screen'
 import { RunsConsoleScreen } from '@/screens/runs/runs-console-screen'
 import { WorkspaceSkillsScreen } from '@/screens/skills/workspace-skills-screen'
 import { TeamsScreen } from '@/screens/teams/teams-screen'
+import { WorkspaceMissionInput } from './workspace-mission-input'
+import { WorkspaceRecentMissions } from './workspace-recent-missions'
 
 export type WorkspaceTab =
   | 'projects'
@@ -207,6 +209,11 @@ export function WorkspaceLayout({ search }: WorkspaceLayoutProps) {
 
   const selectedProjectId = search.projectId ?? search.project ?? ''
   const activeProjectId = projectContext.projectId ?? selectedProjectId
+  const showWorkspaceHome =
+    activeTab === 'projects' &&
+    !search.missionId &&
+    !search.showWizard &&
+    !selectedProjectId
 
   const projectDetailQuery = useQuery({
     queryKey: ['workspace', 'layout', 'project-detail', selectedProjectId],
@@ -608,6 +615,14 @@ export function WorkspaceLayout({ search }: WorkspaceLayoutProps) {
             <ProjectsScreen
               replanSearch={search}
               routePath="/workspace"
+              leadingContent={
+                showWorkspaceHome ? (
+                  <>
+                    <WorkspaceMissionInput connected={connected} />
+                    <WorkspaceRecentMissions />
+                  </>
+                ) : undefined
+              }
               onProjectContextChange={setProjectContext}
             />
           )

@@ -86,6 +86,9 @@ export function getStatusBadgeClass(status: WorkspaceStatus): string {
   if (status === 'archived') {
     return 'border-primary-200 bg-primary-50 text-primary-600'
   }
+  if (status === 'decomposing' || status === 'reviewing' || status === 'revising') {
+    return 'border-accent-500/30 bg-accent-500/10 text-accent-300'
+  }
   if (status === 'ready') {
     return 'border-blue-500/30 bg-blue-500/10 text-blue-300'
   }
@@ -101,11 +104,17 @@ export function getStatusBadgeClass(status: WorkspaceStatus): string {
   if (status === 'failed') {
     return 'border-red-500/30 bg-red-500/10 text-red-300'
   }
+  if (status === 'stopped') {
+    return 'border-red-500/30 bg-red-500/10 text-red-300'
+  }
   return 'border-primary-200 bg-primary-50 text-primary-900'
 }
 
 export function getTaskDotClass(status: WorkspaceStatus): string {
   if (status === 'archived') return 'bg-primary-300'
+  if (status === 'decomposing' || status === 'reviewing' || status === 'revising') {
+    return 'bg-accent-400'
+  }
   if (status === 'ready') return 'bg-blue-400'
   if (status === 'running' || status === 'in_progress' || status === 'active') {
     return 'bg-emerald-400'
@@ -113,6 +122,7 @@ export function getTaskDotClass(status: WorkspaceStatus): string {
   if (status === 'completed' || status === 'done') return 'bg-green-400'
   if (status === 'paused') return 'bg-amber-400'
   if (status === 'failed') return 'bg-red-400'
+  if (status === 'stopped') return 'bg-red-400'
   return 'bg-primary-500'
 }
 

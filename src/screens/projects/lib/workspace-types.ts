@@ -1,11 +1,15 @@
 export type WorkspaceStatus =
   | 'pending'
+  | 'decomposing'
   | 'ready'
   | 'running'
+  | 'reviewing'
+  | 'revising'
   | 'completed'
   | 'failed'
   | 'active'
   | 'paused'
+  | 'stopped'
   | 'done'
   | string
 

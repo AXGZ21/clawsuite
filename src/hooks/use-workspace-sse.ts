@@ -120,6 +120,8 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
           ['workspace', 'projects'],
           ['workspace', 'project-snapshots'],
           ['workspace', 'stats'],
+          ['workspace', 'home', 'missions'],
+          ['workspace', 'home', 'task-runs'],
           ['workspace', 'conductor'],
         ])
       })
@@ -128,6 +130,7 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
         invalidateQueries(queryClient, [
           ['workspace', 'task-runs'],
           ['workspace', 'mission-console'],
+          ['workspace', 'home', 'task-runs'],
           ['workspace', 'conductor'],
         ])
       })
@@ -148,6 +151,7 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
 
         invalidateQueries(queryClient, [
           ['workspace', 'task-runs', runId, 'events'],
+          ['workspace', 'home', 'task-runs'],
           ['workspace', 'conductor'],
         ])
       })
@@ -163,6 +167,8 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
           ['workspace', 'layout', 'project-detail'],
           ['workspace', 'stats'],
           ['workspace', 'events'],
+          ['workspace', 'home', 'missions'],
+          ['workspace', 'home', 'task-runs'],
           ['workspace', 'conductor'],
         ])
 
@@ -221,6 +227,8 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
           ['workspace', 'project-snapshots'],
           ['workspace', 'layout', 'project-detail'],
           ['workspace', 'stats'],
+          ['workspace', 'home', 'missions'],
+          ['workspace', 'home', 'task-runs'],
           ['workspace', 'conductor'],
           ['workspace', 'conductor', 'recent-missions'],
         ])

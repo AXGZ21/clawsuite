@@ -1,10 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { usePageTitle } from '@/hooks/use-page-title'
-import { AgentsScreen } from '@/screens/gateway/agents-screen'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/conductor')({
+  beforeLoad: function redirectConductorRoute() {
+    throw redirect({
+      to: '/workspace',
+      replace: true,
+    })
+  },
   component: function ConductorRoute() {
-    usePageTitle('Conductor')
-    return <AgentsScreen variant="conductor" />
+    return null
   },
 })

@@ -87,6 +87,7 @@ type ProjectsScreenProps = {
     missionId?: string
   }
   routePath?: '/projects' | '/workspace'
+  leadingContent?: React.ReactNode
   onProjectContextChange?: (context: {
     projectId: string | null
     projectName: string | null
@@ -226,6 +227,7 @@ async function loadMissionTasks(missionId: string) {
 export function ProjectsScreen({
   replanSearch,
   routePath = '/projects',
+  leadingContent,
   onProjectContextChange,
 }: ProjectsScreenProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
@@ -1650,6 +1652,7 @@ export function ProjectsScreen({
   return (
     <main className="min-h-full bg-surface px-4 pb-24 pt-5 text-primary-900 md:px-6 md:pt-8">
       <section className="mx-auto w-full max-w-[1480px] space-y-5">
+        {leadingContent}
         <header className="flex flex-col gap-4 rounded-xl border border-primary-200 bg-primary-50/80 px-5 py-4 shadow-sm md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3">
             <div className="flex size-11 items-center justify-center rounded-xl border border-accent-500/30 bg-accent-500/10 text-accent-400">
