@@ -59,12 +59,37 @@ export class AgentRunner {
       workspacePath: workspace.path,
     });
     const agentSystemPrompt = input.agent.system_prompt?.trim();
-    const prompt = agentSystemPrompt
-      ? `${agentSystemPrompt}\n\n---\n\n${basePrompt}`
-      : basePrompt;
-    let finalPrompt = prompt;
-
     const projectPath = input.project.path;
+    const isEphemeralProject = projectPath?.startsWith("/tmp/conductor") ?? false;
+    let finalPrompt: string;
+
+    if (isEphemeralProject) {
+      const genericPrompt = [
+        "# Autonomous Builder Agent",
+        "",
+        "You are an autonomous coding agent. Build exactly what is requested.",
+        "",
+        "## Rules",
+        "- Create all files from scratch in the current working directory",
+        "- Use modern web technologies (HTML, CSS, JavaScript/TypeScript, React if appropriate)",
+        "- For simple projects, prefer standalone HTML+CSS+JS (no build step needed)",
+        "- For complex projects, scaffold with Vite + React + Tailwind",
+        "- Always create a working, self-contained project",
+        "- Commit your changes with a descriptive message",
+        "- If the project has package.json, run npm install",
+        "- Verify your work compiles/runs without errors",
+        "",
+        "## Important",
+        "- This is a FRESH empty directory — create everything from scratch",
+        "- Do NOT look for existing source code — there is none",
+        "- Build the complete project as described in the task",
+      ].join("\n");
+      finalPrompt = `${genericPrompt}\n\n---\n\n${basePrompt}`;
+    } else {
+      finalPrompt = agentSystemPrompt
+        ? `${agentSystemPrompt}\n\n---\n\n${basePrompt}`
+        : basePrompt;
+    }
 
     if (projectPath) {
       try {
