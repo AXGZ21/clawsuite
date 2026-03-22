@@ -5,7 +5,7 @@ import { buildCheckpoint } from "./checkpoint-builder";
 import { OpenClawClient, type SessionStatus } from "./openclaw-client";
 import { QARunner } from "./qa-runner";
 import { Tracker } from "./tracker";
-import type { AgentRecord, AgentRoleConfig, Project, Task, TaskRun, TaskWithRelations } from "./types";
+import type { AgentRecord, AgentRoleConfig, Project, Task, TaskAgentRole, TaskRun, TaskWithRelations } from "./types";
 import { resolveProjectPath, WorkspaceManager } from "./workspace";
 
 const execFileAsync = promisify(execFile);
@@ -117,20 +117,70 @@ function parseProjectAgentConfig(project: Project): AgentRoleConfig | null {
   }
 }
 
-function isBuildRole(task: Task): boolean {
-  const agentType = safeTrim(task.agent_type)?.toLowerCase();
-  if (!agentType) {
-    return false;
+function normalizeTaskRole(value: string | null | undefined): TaskAgentRole | null {
+  const normalized = safeTrim(value)?.toLowerCase();
+  if (!normalized) {
+    return null;
   }
 
-  return (
-    agentType === "coder" ||
-    agentType === "aurora-coder" ||
-    agentType === "backend" ||
-    agentType === "frontend" ||
-    agentType === "builder" ||
-    agentType === "aurora-daemon"
-  );
+  switch (normalized) {
+    case "codex":
+    case "coder":
+    case "builder":
+      return "coder";
+    case "frontend":
+    case "aurora-coder":
+      return "frontend";
+    case "backend":
+    case "aurora-daemon":
+      return "backend";
+    case "critic":
+    case "qa":
+      return "critic";
+    case "reviewer":
+    case "review":
+    case "aurora-qa":
+      return "reviewer";
+    case "planner":
+    case "openclaw":
+    case "decomposer":
+    case "aurora-planner":
+      return "planner";
+    case "researcher":
+    case "research":
+    case "analysis":
+    case "claude":
+    case "ollama":
+      return "researcher";
+    default:
+      return null;
+  }
+}
+
+function roleToAgentId(role: TaskAgentRole | null): string | null {
+  switch (role) {
+    case "coder":
+    case "frontend":
+      return "aurora-coder";
+    case "backend":
+      return "aurora-daemon";
+    case "critic":
+    case "reviewer":
+      return "aurora-qa";
+    case "planner":
+      return "aurora-planner";
+    case "researcher":
+      return null;
+    default:
+      return null;
+  }
+}
+
+function isBuildRole(task: Task): boolean {
+  const agentRole =
+    normalizeTaskRole(task.agent_type) ??
+    normalizeTaskRole(task.suggested_agent_type);
+  return agentRole === "coder" || agentRole === "frontend" || agentRole === "backend";
 }
 
 export class MissionLoop {
@@ -291,6 +341,11 @@ export class MissionLoop {
 
       const task = this.tracker.getTask(approvalContext.task_id);
       if (!task) {
+        continue;
+      }
+
+      const mission = this.tracker.getMission(task.mission_id);
+      if (!mission || mission.status === "paused" || mission.status === "stopped") {
         continue;
       }
 
@@ -541,6 +596,7 @@ export class MissionLoop {
           task,
           run.attempt,
           criticReview.response,
+          null,
           overseerId,
           "critic",
         );
@@ -609,6 +665,7 @@ export class MissionLoop {
           task,
           run.attempt,
           qaResult.issues.join("\n") || qaResult.suggestion || "QA requested revisions.",
+          latestCheckpoint.id,
           overseerId,
         );
       }
@@ -696,6 +753,10 @@ export class MissionLoop {
     }
 
     const preferredId =
+      roleToAgentId(
+        normalizeTaskRole(task.agent_type) ??
+          normalizeTaskRole(task.suggested_agent_type),
+      ) ??
       safeTrim(task.agent_type) ??
       getPreferredAgentId(task.name.toLowerCase()) ??
       task.suggested_agent_type ??
@@ -715,7 +776,9 @@ export class MissionLoop {
 
   private resolveTaskAgent(project: Project, task: Task): ResolvedTaskAgent | null {
     const projectAgentConfig = parseProjectAgentConfig(project);
-    const roleKey = safeTrim(task.agent_type);
+    const roleKey =
+      normalizeTaskRole(task.agent_type) ??
+      normalizeTaskRole(task.suggested_agent_type);
     const configuredRole = roleKey
       ? projectAgentConfig?.roles?.[roleKey]
       : undefined;
@@ -725,7 +788,8 @@ export class MissionLoop {
 
     const spawnAgentId =
       configuredAgentId ??
-      roleKey ??
+      roleToAgentId(roleKey) ??
+      safeTrim(task.agent_type) ??
       safeTrim(task.agent_id) ??
       fallbackAgent?.id ??
       null;
@@ -802,18 +866,22 @@ export class MissionLoop {
     const requestedType = safeTrim(task.agent_type) ?? agent?.role;
 
     switch (requestedType) {
+      case "coder":
       case "frontend":
       case "aurora-coder":
         return "ROLE: Frontend implementation specialist. Focus on React, Tailwind, and workspace UI changes.";
       case "backend":
       case "aurora-daemon":
         return "ROLE: Backend implementation specialist. Focus on the workspace daemon, tracker, routes, and database correctness.";
+      case "critic":
       case "reviewer":
       case "aurora-qa":
         return "ROLE: QA and verification specialist. Review changes for regressions, correctness, and missing tests.";
       case "planner":
       case "aurora-planner":
         return "ROLE: Planning specialist. Break work into precise implementation steps.";
+      case "researcher":
+        return "ROLE: Research specialist. Analyze options, constraints, and implementation risks.";
       default:
         return `ROLE: ${agent?.role || "Implementation specialist"}.`;
     }
@@ -874,6 +942,7 @@ export class MissionLoop {
     task: Task,
     attempt: number,
     feedback: string,
+    checkpointId: string | null,
     overseerId: string | null,
     source: "qa" | "critic" = "qa",
   ): Promise<void> {
@@ -892,8 +961,12 @@ export class MissionLoop {
     this.tracker.updateTask(task.id, {
       description: `${task.description ?? ""}\n\n${noteLabel}:\n${feedback}`.trim(),
     });
+    if (checkpointId) {
+      this.tracker.updateCheckpointStatus(checkpointId, "revised", feedback);
+    }
     this.tracker.createPendingTaskRun(task.id, task.agent_id, null, attempt + 1);
     this.tracker.setTaskStatus(task.id, "pending");
+    this.tracker.refreshMissionTaskStatuses(task.mission_id);
     this.requestTick();
   }
 

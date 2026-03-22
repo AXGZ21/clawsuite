@@ -28,7 +28,7 @@ export function isBlockedProjectPath(projectPath: string): boolean {
 }
 
 export function createSafeProjectPath(timestamp = Date.now()): string {
-  return path.join("/tmp", `conductor-${timestamp}`);
+  return path.join("/tmp", `workspace-mission-${timestamp}`);
 }
 
 export function resolveProjectPath(projectPath?: string | null, timestamp = Date.now()): string {
@@ -85,7 +85,7 @@ export class WorkspaceManager {
   }
 
   async prepare(project: Project, task: Task, runId: string): Promise<WorkspaceInfo> {
-    const isEphemeralProject = project.path?.startsWith("/tmp/conductor") ?? false;
+    const isEphemeralProject = project.path?.startsWith("/tmp/workspace-mission") ?? false;
     const projectPath = resolveProjectPath(project.path);
     const workflowConfig = getWorkflowConfig(projectPath);
     if (isEphemeralProject) {

@@ -6,6 +6,7 @@ import type {
   AgentRecord,
   OrchestratorState,
   Task,
+  TaskAgentRole,
   TaskRunStatus,
 } from "./types";
 
@@ -38,6 +39,61 @@ function isOnlineAgent(agent: AgentRecord): boolean {
   return agent.status === "online" || agent.status === "idle" || agent.status === "away";
 }
 
+function normalizeTaskRole(value: string | null | undefined): TaskAgentRole | null {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  switch (normalized) {
+    case "codex":
+    case "coder":
+    case "builder":
+      return "coder";
+    case "frontend":
+      return "frontend";
+    case "backend":
+      return "backend";
+    case "critic":
+    case "qa":
+      return "critic";
+    case "reviewer":
+    case "review":
+      return "reviewer";
+    case "planner":
+    case "openclaw":
+    case "decomposer":
+      return "planner";
+    case "researcher":
+    case "research":
+    case "analysis":
+    case "claude":
+    case "ollama":
+      return "researcher";
+    default:
+      return null;
+  }
+}
+
+function roleToAgentId(role: TaskAgentRole | null): string | null {
+  switch (role) {
+    case "coder":
+    case "frontend":
+      return "aurora-coder";
+    case "backend":
+      return "aurora-daemon";
+    case "critic":
+    case "reviewer":
+      return "aurora-qa";
+    case "planner":
+      return "aurora-planner";
+    case "researcher":
+      return null;
+    default:
+      return null;
+  }
+}
+
 export function selectAgent(task: Task, agents: AgentRecord[]): AgentRecord | null {
   if (task.agent_id) {
     return agents.find((agent) => agent.id === task.agent_id) ?? null;
@@ -52,8 +108,12 @@ export function selectAgent(task: Task, agents: AgentRecord[]): AgentRecord | nu
     }
   }
 
-  if (task.suggested_agent_type) {
-    const suggestedAgent = onlineAgents.find((agent) => agent.adapter_type === task.suggested_agent_type);
+  const normalizedRole =
+    normalizeTaskRole(task.agent_type) ??
+    normalizeTaskRole(task.suggested_agent_type);
+  const mappedAgentId = roleToAgentId(normalizedRole);
+  if (mappedAgentId) {
+    const suggestedAgent = onlineAgents.find((agent) => agent.id === mappedAgentId);
     if (suggestedAgent) {
       return suggestedAgent;
     }

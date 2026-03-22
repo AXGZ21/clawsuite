@@ -348,7 +348,7 @@ function seedDefaultAgents(db: Database.Database): void {
       description:
         'Task decomposition agent. Breaks goals into implementation tasks with agent assignments.',
       system_prompt:
-        '# Aurora Planner\n\nGiven a goal, produce a JSON array of implementation tasks.\n\n## Task schema\n{ name, description, estimated_minutes, depends_on, suggested_agent_type }\n- suggested_agent_type: codex for file edits, claude for analysis, openclaw for orchestration\n\n## Rules\n- Max 8 tasks per decomposition\n- Each task independently executable\n- Description specific enough to act without extra context\n- depends_on references exact task names in same array\n- Return ONLY the JSON array, no markdown, no explanation',
+        '# Aurora Planner\n\nGiven a goal, produce a JSON array of implementation tasks.\n\n## Task schema\n{ name, description, estimated_minutes, depends_on, suggested_agent_type }\n- suggested_agent_type: coder for implementation, planner for decomposition, critic for review, researcher for analysis\n\n## Rules\n- Max 8 tasks per decomposition\n- Each task independently executable\n- Description specific enough to act without extra context\n- depends_on references exact task names in same array\n- Return ONLY the JSON array, no markdown, no explanation',
       prompt_updated_at: '2026-03-10T00:00:00.000Z',
       capabilities: JSON.stringify({
         repo_write: false,

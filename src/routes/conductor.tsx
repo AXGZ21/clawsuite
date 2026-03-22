@@ -7,7 +7,4 @@ export const Route = createFileRoute('/conductor')({
       replace: true,
     })
   },
-  component: function ConductorRoute() {
-    return null
-  },
 })

@@ -231,7 +231,7 @@ const DEFAULT_AGENT_DIRECTORY: AgentDirectoryRecord[] = [
       '',
       '## Task schema',
       '{ name, description, estimated_minutes, depends_on, suggested_agent_type }',
-      '- suggested_agent_type: codex for file edits, claude for analysis, openclaw for orchestration',
+      '- suggested_agent_type: coder for implementation, planner for decomposition, critic for review, researcher for analysis',
       '',
       '## Rules',
       '- Max 8 tasks per decomposition',
@@ -1747,6 +1747,8 @@ export class Tracker extends EventEmitter {
         this.logAuditEvent('checkpoint.approved', checkpoint.id, 'checkpoint')
       } else if (status === 'rejected') {
         this.logAuditEvent('checkpoint.rejected', checkpoint.id, 'checkpoint')
+      } else if (status === 'revised') {
+        this.logAuditEvent('checkpoint.revised', checkpoint.id, 'checkpoint')
       }
       this.emitSse('checkpoint.updated', checkpoint)
       const context = this.getCheckpointProjectContext(checkpoint.id)

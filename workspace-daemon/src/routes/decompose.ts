@@ -8,6 +8,10 @@ import type { DecomposedTask } from "../types";
 const MAX_CONTEXT_FILES = 200;
 const SKIPPED_DIRECTORIES = new Set([".git", "node_modules", ".data", "dist"]);
 
+function normalizeSuggestedAgentType(value: DecomposedTask["suggested_agent_type"]): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim().toLowerCase() : null;
+}
+
 async function collectExistingFiles(projectPath: string, maxFiles = MAX_CONTEXT_FILES): Promise<string[]> {
   const files: string[] = [];
   const queue = [projectPath];
@@ -44,7 +48,7 @@ async function createTasksForMission(tracker: Tracker, missionId: string, tasks:
       mission_id: missionId,
       name: task.name,
       description: task.description,
-      agent_type: task.suggested_agent_type,
+      agent_type: normalizeSuggestedAgentType(task.suggested_agent_type),
       sort_order: index,
       depends_on: [],
     }),

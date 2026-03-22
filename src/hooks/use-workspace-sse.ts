@@ -122,7 +122,6 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
           ['workspace', 'stats'],
           ['workspace', 'home', 'missions'],
           ['workspace', 'home', 'task-runs'],
-          ['workspace', 'conductor'],
         ])
       })
 
@@ -131,7 +130,6 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
           ['workspace', 'task-runs'],
           ['workspace', 'mission-console'],
           ['workspace', 'home', 'task-runs'],
-          ['workspace', 'conductor'],
         ])
       })
 
@@ -152,7 +150,6 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
         invalidateQueries(queryClient, [
           ['workspace', 'task-runs', runId, 'events'],
           ['workspace', 'home', 'task-runs'],
-          ['workspace', 'conductor'],
         ])
       })
 
@@ -169,7 +166,6 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
           ['workspace', 'events'],
           ['workspace', 'home', 'missions'],
           ['workspace', 'home', 'task-runs'],
-          ['workspace', 'conductor'],
         ])
 
         const payload = parseSseData(event)
@@ -205,7 +201,6 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
           ['workspace', 'projects'],
           ['workspace', 'project-detail'],
           ['workspace', 'layout', 'project-detail'],
-          ['workspace', 'conductor', 'checkpoints'],
         ])
       })
 
@@ -215,7 +210,6 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
           ['workspace', 'projects'],
           ['workspace', 'project-detail'],
           ['workspace', 'layout', 'project-detail'],
-          ['workspace', 'conductor', 'checkpoints'],
         ])
       })
 
@@ -229,8 +223,6 @@ export function useWorkspaceSse(options?: { silent?: boolean }) {
           ['workspace', 'stats'],
           ['workspace', 'home', 'missions'],
           ['workspace', 'home', 'task-runs'],
-          ['workspace', 'conductor'],
-          ['workspace', 'conductor', 'recent-missions'],
         ])
       })
 

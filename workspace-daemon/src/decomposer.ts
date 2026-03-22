@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
-import type { AgentAdapterType, DecomposeResult, DecomposerContext, DecomposedTask } from "./types";
+import type { DecomposeResult, DecomposerContext, DecomposedTask, TaskAgentRole } from "./types";
 
 const SYSTEM_PROMPT = [
   "You are a task decomposition engine for an engineering workspace daemon.",
@@ -13,10 +13,19 @@ const SYSTEM_PROMPT = [
   "Use concise but actionable task names and descriptions.",
   "estimated_minutes must be a positive integer.",
   "depends_on must be an array of task names from the same response.",
-  "suggested_agent_type must be one of: codex, claude, openclaw, ollama, or null.",
+  "suggested_agent_type must be one of: planner, coder, critic, researcher, or null.",
+  "Use coder for implementation, planner for decomposition, critic for review, researcher for analysis.",
 ].join(" ");
 
-const VALID_AGENT_TYPES = new Set<AgentAdapterType>(["codex", "claude", "openclaw", "ollama"]);
+const VALID_AGENT_TYPES = new Set<TaskAgentRole>([
+  "planner",
+  "coder",
+  "critic",
+  "researcher",
+  "frontend",
+  "backend",
+  "reviewer",
+]);
 
 type OpenClawConfig = {
   auth?: {
@@ -90,12 +99,28 @@ function toPositiveInteger(value: unknown, fallback: number): number {
   return fallback;
 }
 
-function normalizeAgentType(value: unknown): AgentAdapterType | null {
+function normalizeAgentType(value: unknown): TaskAgentRole | null {
   if (typeof value !== "string") {
     return null;
   }
 
-  return VALID_AGENT_TYPES.has(value as AgentAdapterType) ? (value as AgentAdapterType) : null;
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "codex") {
+    return "coder";
+  }
+
+  if (normalized === "claude" || normalized === "ollama") {
+    return "researcher";
+  }
+
+  if (normalized === "openclaw") {
+    return "planner";
+  }
+
+  return VALID_AGENT_TYPES.has(normalized as TaskAgentRole)
+    ? (normalized as TaskAgentRole)
+    : null;
 }
 
 function normalizeTask(value: unknown, index: number): DecomposedTask {
@@ -251,7 +276,7 @@ export class Decomposer {
             description: rawResponse || goal.trim(),
             estimated_minutes: 30,
             depends_on: [],
-            suggested_agent_type: "claude",
+            suggested_agent_type: "researcher",
           },
         ],
         goal,

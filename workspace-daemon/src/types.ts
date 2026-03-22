@@ -60,6 +60,14 @@ export type RunEventType =
   | 'status'
 
 export type AgentAdapterType = 'codex' | 'claude' | 'openclaw' | 'ollama'
+export type TaskAgentRole =
+  | 'planner'
+  | 'coder'
+  | 'critic'
+  | 'researcher'
+  | 'frontend'
+  | 'backend'
+  | 'reviewer'
 
 export interface ProviderConcurrencyConfig {
   [adapterType: string]: number
@@ -139,7 +147,7 @@ export interface Task {
   description: string | null
   agent_id: string | null
   agent_type?: string | null
-  suggested_agent_type?: AgentAdapterType | null
+  suggested_agent_type?: TaskAgentRole | null
   status: TaskStatus
   sort_order: number
   depends_on: string | null
@@ -540,7 +548,7 @@ export interface DecomposedTask {
   description: string
   estimated_minutes: number
   depends_on: string[]
-  suggested_agent_type: AgentAdapterType | null
+  suggested_agent_type: TaskAgentRole | null
 }
 
 export interface DecomposeResult {
