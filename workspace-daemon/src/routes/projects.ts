@@ -4,6 +4,7 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 import { Router } from 'express'
 import { Tracker } from '../tracker'
+import type { AgentRoleConfig, CreateProjectInput } from '../types'
 import { runFullVerification, type FullVerificationResult } from '../verification'
 
 const execFileAsync = promisify(execFile)
@@ -36,6 +37,29 @@ type ProjectFileEntry = {
   size: number
   isText: boolean
   content?: string
+}
+
+function normalizeAgentConfigInput(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined
+  if (value === null) return null
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+
+    try {
+      const parsed = JSON.parse(trimmed) as AgentRoleConfig
+      return JSON.stringify(parsed)
+    } catch {
+      throw new Error('agent_config must be valid JSON')
+    }
+  }
+
+  if (typeof value === 'object') {
+    return JSON.stringify(value as AgentRoleConfig)
+  }
+
+  throw new Error('agent_config must be a JSON string or object')
 }
 
 function getDirentParent(entry: unknown): string | undefined {
@@ -145,6 +169,7 @@ export function createProjectsRouter(tracker: Tracker): Router {
       spec,
       auto_approve,
       overseer,
+      agent_config,
       max_concurrent,
       required_checks,
       allowed_tools,
@@ -154,6 +179,7 @@ export function createProjectsRouter(tracker: Tracker): Router {
       spec?: string | null
       auto_approve?: number | boolean | null
       overseer?: string | null
+      agent_config?: AgentRoleConfig | string | null
       max_concurrent?: number | null
       required_checks?: string | string[] | null
       allowed_tools?: string | string[] | null
@@ -168,6 +194,16 @@ export function createProjectsRouter(tracker: Tracker): Router {
       (typeof max_concurrent !== 'number' || Number.isNaN(Number(max_concurrent)))
     ) {
       res.status(400).json({ error: 'max_concurrent must be a number' })
+      return
+    }
+
+    let normalizedAgentConfig: string | null | undefined
+    try {
+      normalizedAgentConfig = normalizeAgentConfigInput(agent_config)
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'agent_config is invalid',
+      })
       return
     }
 
@@ -201,6 +237,7 @@ export function createProjectsRouter(tracker: Tracker): Router {
       spec: spec ?? null,
       auto_approve: auto_approve ? 1 : 0,
       overseer: typeof overseer === 'string' ? overseer.trim() || null : null,
+      agent_config: normalizedAgentConfig ?? null,
       max_concurrent: normalizedMaxConcurrent,
       required_checks: normalizedChecks.join(','),
       allowed_tools: normalizedTools.join(','),
@@ -285,7 +322,24 @@ export function createProjectsRouter(tracker: Tracker): Router {
   })
 
   router.put('/:id', (req, res) => {
-    const project = tracker.updateProject(req.params.id, req.body)
+    let normalizedAgentConfig: string | null | undefined
+    try {
+      normalizedAgentConfig = normalizeAgentConfigInput(
+        (req.body as { agent_config?: unknown }).agent_config,
+      )
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'agent_config is invalid',
+      })
+      return
+    }
+
+    const updates: Partial<CreateProjectInput> = { ...(req.body as CreateProjectInput) }
+    if (normalizedAgentConfig !== undefined) {
+      updates.agent_config = normalizedAgentConfig
+    }
+
+    const project = tracker.updateProject(req.params.id, updates)
     if (!project) {
       res.status(404).json({ error: 'Project not found' })
       return
@@ -307,7 +361,22 @@ export function createProjectsRouter(tracker: Tracker): Router {
       return
     }
 
-    const project = tracker.updateProject(req.params.id, updates as Partial<import('../types').CreateProjectInput>)
+    let normalizedAgentConfig: string | null | undefined
+    try {
+      normalizedAgentConfig = normalizeAgentConfigInput(updates.agent_config)
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'agent_config is invalid',
+      })
+      return
+    }
+
+    const normalizedUpdates = { ...updates } as Partial<CreateProjectInput>
+    if (normalizedAgentConfig !== undefined) {
+      normalizedUpdates.agent_config = normalizedAgentConfig
+    }
+
+    const project = tracker.updateProject(req.params.id, normalizedUpdates)
     if (!project) {
       res.status(404).json({ error: 'Project not found' })
       return

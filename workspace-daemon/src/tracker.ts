@@ -339,6 +339,7 @@ export class Tracker extends EventEmitter {
         spec,
         auto_approve,
         overseer,
+        agent_config,
         max_concurrent,
         required_checks,
         allowed_tools
@@ -348,6 +349,7 @@ export class Tracker extends EventEmitter {
         @spec,
         @auto_approve,
         @overseer,
+        @agent_config,
         @max_concurrent,
         @required_checks,
         @allowed_tools
@@ -359,6 +361,7 @@ export class Tracker extends EventEmitter {
       spec: input.spec ?? null,
       auto_approve: input.auto_approve ?? 0,
       overseer: input.overseer ?? null,
+      agent_config: input.agent_config ?? null,
       max_concurrent: input.max_concurrent ?? 2,
       required_checks: input.required_checks ?? 'tsc',
       allowed_tools: input.allowed_tools ?? 'git,shell',
@@ -511,6 +514,12 @@ export class Tracker extends EventEmitter {
     const nextOverseer = Object.prototype.hasOwnProperty.call(updates, 'overseer')
       ? updates.overseer
       : existing.overseer
+    const nextAgentConfig = Object.prototype.hasOwnProperty.call(
+      updates,
+      'agent_config',
+    )
+      ? updates.agent_config
+      : existing.agent_config
     const nextMaxConcurrent = Object.prototype.hasOwnProperty.call(
       updates,
       'max_concurrent',
@@ -536,7 +545,7 @@ export class Tracker extends EventEmitter {
     this.db
       .prepare(
         `UPDATE projects
-         SET name = ?, path = ?, spec = ?, auto_approve = ?, overseer = ?, max_concurrent = ?, required_checks = ?, allowed_tools = ?, status = ?
+         SET name = ?, path = ?, spec = ?, auto_approve = ?, overseer = ?, agent_config = ?, max_concurrent = ?, required_checks = ?, allowed_tools = ?, status = ?
          WHERE id = ?`,
       )
       .run(
@@ -545,6 +554,7 @@ export class Tracker extends EventEmitter {
         nextSpec,
         nextAutoApprove,
         nextOverseer,
+        nextAgentConfig,
         nextMaxConcurrent,
         nextRequiredChecks,
         nextAllowedTools,

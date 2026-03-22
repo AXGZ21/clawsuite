@@ -5,7 +5,7 @@ import { buildCheckpoint } from "./checkpoint-builder";
 import { OpenClawClient, type SessionStatus } from "./openclaw-client";
 import { QARunner } from "./qa-runner";
 import { Tracker } from "./tracker";
-import type { AgentRecord, Project, Task, TaskRun, TaskWithRelations } from "./types";
+import type { AgentRecord, AgentRoleConfig, Project, Task, TaskRun, TaskWithRelations } from "./types";
 import { resolveProjectPath, WorkspaceManager } from "./workspace";
 
 const execFileAsync = promisify(execFile);
@@ -33,6 +33,18 @@ type RetryState = {
 
 type SessionState = {
   lastMessage?: string;
+};
+
+type ResolvedTaskAgent = {
+  record: AgentRecord | null;
+  spawnAgentId: string;
+  spawnModel: string | null;
+};
+
+type CriticReviewResult = {
+  score: number;
+  issues: string[];
+  response: string;
 };
 
 const DEFAULT_CONFIG: MissionLoopConfig = {
@@ -89,6 +101,36 @@ function safeTrim(value: string | null | undefined): string | null {
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function parseProjectAgentConfig(project: Project): AgentRoleConfig | null {
+  const raw = safeTrim(project.agent_config);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as AgentRoleConfig;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function isBuildRole(task: Task): boolean {
+  const agentType = safeTrim(task.agent_type)?.toLowerCase();
+  if (!agentType) {
+    return false;
+  }
+
+  return (
+    agentType === "coder" ||
+    agentType === "aurora-coder" ||
+    agentType === "backend" ||
+    agentType === "frontend" ||
+    agentType === "builder" ||
+    agentType === "aurora-daemon"
+  );
 }
 
 export class MissionLoop {
@@ -371,8 +413,8 @@ export class MissionLoop {
   }
 
   private async startTask(project: Project, task: TaskWithRelations): Promise<boolean> {
-    const agent = this.selectAgent(task);
-    if (!agent) {
+    const resolvedAgent = this.resolveTaskAgent(project, task);
+    if (!resolvedAgent) {
       this.tracker.setTaskStatus(task.id, "failed");
       return false;
     }
@@ -381,18 +423,18 @@ export class MissionLoop {
     const attempt = pendingRun?.attempt ?? 1;
     const taskRun =
       pendingRun ??
-      this.tracker.createPendingTaskRun(task.id, agent.id, null, attempt);
+      this.tracker.createPendingTaskRun(task.id, resolvedAgent.record?.id ?? null, null, attempt);
 
     try {
       this.clearRetry(task.id);
       const workspace = await this.workspaceManager.ensureWorkspace(project, task, taskRun.id);
       this.tracker.updateTaskRunWorkspacePath(taskRun.id, workspace.path);
 
-      const prompt = await this.buildTaskPrompt(project, task, agent, workspace.path);
+      const prompt = await this.buildTaskPrompt(project, task, resolvedAgent.record, workspace.path);
       const session = await this.openclawClient.spawnSession({
         task: prompt,
-        agentId: agent.id,
-        model: agent.model ?? undefined,
+        agentId: resolvedAgent.spawnAgentId,
+        model: resolvedAgent.spawnModel ?? undefined,
         label: `${project.name}: ${task.name}`,
         cwd: workspace.path,
         runTimeoutSeconds: Math.ceil(this.config.sessionTimeoutMs / 1_000),
@@ -413,14 +455,20 @@ export class MissionLoop {
       });
       this.tracker.markTaskRunStarted(taskRun.id);
       this.tracker.setTaskStatus(task.id, "running");
-      this.tracker.setAgentStatus(agent.id, "running");
+      if (resolvedAgent.record?.id) {
+        this.tracker.setAgentStatus(resolvedAgent.record.id, "running");
+      }
       this.tracker.logAuditEvent("task.started", taskRun.id, "task_run", {
-        agent_id: agent.id,
+        agent_id: resolvedAgent.record?.id ?? null,
+        spawn_agent_id: resolvedAgent.spawnAgentId,
+        model: resolvedAgent.spawnModel,
         session_id: session.sessionKey,
       });
       this.tracker.appendRunEvent(taskRun.id, "started", {
         session_id: session.sessionKey,
         workspace_path: workspace.path,
+        agent_id: resolvedAgent.spawnAgentId,
+        model: resolvedAgent.spawnModel,
       });
       this.sessions.set(taskRun.id, {});
       return true;
@@ -428,7 +476,9 @@ export class MissionLoop {
       const message = error instanceof Error ? error.message : "Failed to start task";
       this.tracker.failTaskRun(taskRun.id, message);
       this.tracker.setTaskStatus(task.id, "failed");
-      this.tracker.setAgentStatus(agent.id, "idle");
+      if (resolvedAgent.record?.id) {
+        this.tracker.setAgentStatus(resolvedAgent.record.id, "idle");
+      }
       this.tracker.logAuditEvent("task.failed", taskRun.id, "task_run", {
         reason: message,
       });
@@ -454,6 +504,55 @@ export class MissionLoop {
     const resolvedProjectPath = safeTrim(projectPath)
       ? resolveProjectPath(projectPath)
       : null;
+    const project = this.tracker.getProject(projectId);
+    let criticReview: CriticReviewResult | null = null;
+    if (project && isBuildRole(task)) {
+      try {
+        criticReview = await this.runCriticReview(project, task, run, workspacePath);
+      } catch (error) {
+        this.tracker.appendRunEvent(run.id, "status", {
+          critic_error:
+            error instanceof Error ? error.message : "Critic review failed",
+        });
+      }
+    }
+
+    if (criticReview && criticReview.score < 7) {
+      const overseerId =
+        safeTrim(project?.overseer) ?? safeTrim(this.config.overseerAgentId) ?? null;
+      const criticLoopCount = this.getCriticLoopCount(task);
+      const canRevise =
+        criticLoopCount < 2 && run.attempt < this.config.maxRetries;
+
+      if (canRevise) {
+        this.tracker.completeTaskRun(run.id, {
+          status: "completed",
+          error: null,
+          input_tokens: 0,
+          output_tokens: status.totalTokens ?? 0,
+          cost_cents: 0,
+        });
+        this.tracker.logAuditEvent("task.completed", run.id, "task_run", {
+          critic_score: criticReview.score,
+          critic_issues: criticReview.issues,
+          critic_revision_requested: true,
+        });
+        await this.createRevisionOrEscalate(
+          task,
+          run.attempt,
+          criticReview.response,
+          overseerId,
+          "critic",
+        );
+        const agentId = safeTrim(run.agent_id) ?? safeTrim(task.agent_id);
+        if (agentId) {
+          this.tracker.setAgentStatus(agentId, "idle");
+        }
+        this.sessions.delete(run.id);
+        return;
+      }
+    }
+
     const checkpoint = await buildCheckpoint(
       workspacePath,
       resolvedProjectPath,
@@ -485,7 +584,6 @@ export class MissionLoop {
       checkpoint_id: checkpoint.id,
     });
 
-    const project = this.tracker.getProject(projectId);
     const autoApproveEnabled = Number(project?.auto_approve ?? 0) === 1;
     const overseerId =
       safeTrim(project?.overseer) ?? safeTrim(this.config.overseerAgentId) ?? null;
@@ -615,18 +713,51 @@ export class MissionLoop {
     return agents[0] ?? null;
   }
 
+  private resolveTaskAgent(project: Project, task: Task): ResolvedTaskAgent | null {
+    const projectAgentConfig = parseProjectAgentConfig(project);
+    const roleKey = safeTrim(task.agent_type);
+    const configuredRole = roleKey
+      ? projectAgentConfig?.roles?.[roleKey]
+      : undefined;
+    const configuredAgentId = safeTrim(configuredRole?.agentId);
+    const configuredModel = safeTrim(configuredRole?.model);
+    const fallbackAgent = this.selectAgent(task);
+
+    const spawnAgentId =
+      configuredAgentId ??
+      roleKey ??
+      safeTrim(task.agent_id) ??
+      fallbackAgent?.id ??
+      null;
+    if (!spawnAgentId) {
+      return null;
+    }
+
+    const record =
+      (configuredAgentId ? this.tracker.getAgent(configuredAgentId) : null) ??
+      fallbackAgent;
+
+    return {
+      record,
+      spawnAgentId,
+      spawnModel: configuredModel ?? record?.model ?? null,
+    };
+  }
+
   private async buildTaskPrompt(
     project: Project,
     task: Task,
-    agent: AgentRecord,
+    agent: AgentRecord | null,
     workspacePath: string,
   ): Promise<string> {
     const projectPath = safeTrim(project.path);
     const gitLog = projectPath ? await this.readGitLog(resolveProjectPath(projectPath)) : null;
-    const roleContext = safeTrim(agent.system_prompt) ?? this.getAgentRoleContext(task, agent);
+    const roleContext =
+      safeTrim(agent?.system_prompt) ??
+      this.getAgentRoleContext(task, agent);
 
     return [
-      `IDENTITY: ${agent.id}`,
+      `IDENTITY: ${agent?.id ?? safeTrim(task.agent_type) ?? "workspace-agent"}`,
       roleContext,
       "",
       "## Project",
@@ -667,8 +798,8 @@ export class MissionLoop {
     }
   }
 
-  private getAgentRoleContext(task: Task, agent: AgentRecord): string {
-    const requestedType = safeTrim(task.agent_type) ?? agent.role;
+  private getAgentRoleContext(task: Task, agent: AgentRecord | null): string {
+    const requestedType = safeTrim(task.agent_type) ?? agent?.role;
 
     switch (requestedType) {
       case "frontend":
@@ -684,7 +815,7 @@ export class MissionLoop {
       case "aurora-planner":
         return "ROLE: Planning specialist. Break work into precise implementation steps.";
       default:
-        return `ROLE: ${agent.role || "Implementation specialist"}.`;
+        return `ROLE: ${agent?.role || "Implementation specialist"}.`;
     }
   }
 
@@ -744,6 +875,7 @@ export class MissionLoop {
     attempt: number,
     feedback: string,
     overseerId: string | null,
+    source: "qa" | "critic" = "qa",
   ): Promise<void> {
     if (attempt >= this.config.maxRetries) {
       this.tracker.updateMissionLifecycleStatus(task.mission_id, "failed");
@@ -755,12 +887,132 @@ export class MissionLoop {
       return;
     }
 
+    const noteLabel =
+      source === "critic" ? "Critic revision notes" : "QA revision notes";
     this.tracker.updateTask(task.id, {
-      description: `${task.description ?? ""}\n\nQA revision notes:\n${feedback}`.trim(),
+      description: `${task.description ?? ""}\n\n${noteLabel}:\n${feedback}`.trim(),
     });
     this.tracker.createPendingTaskRun(task.id, task.agent_id, null, attempt + 1);
     this.tracker.setTaskStatus(task.id, "pending");
     this.requestTick();
+  }
+
+  private getCriticLoopCount(task: Task): number {
+    const matches = (task.description ?? "").match(/Critic revision notes:/g);
+    return matches?.length ?? 0;
+  }
+
+  private async runCriticReview(
+    project: Project,
+    task: Task,
+    run: TaskRun,
+    workspacePath: string,
+  ): Promise<CriticReviewResult | null> {
+    const projectAgentConfig = parseProjectAgentConfig(project);
+    const criticRole = projectAgentConfig?.roles?.critic;
+    const criticAgentId = safeTrim(criticRole?.agentId);
+
+    if (!criticAgentId) {
+      return null;
+    }
+
+    const diff = await this.readWorkspaceDiff(workspacePath);
+    const prompt = [
+      "Review this code change before checkpoint creation.",
+      `Task: ${task.name}`,
+      task.description ? `Task description:\n${task.description}` : "",
+      "",
+      "Instructions:",
+      "Review this code change for the task. Score 1-10. List issues. If score < 7, explain what needs fixing.",
+      "",
+      "Diff:",
+      diff || "(No diff available)",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const session = await this.openclawClient.spawnSession({
+      task: prompt,
+      agentId: criticAgentId,
+      model: safeTrim(criticRole?.model) ?? undefined,
+      label: `${project.name}: critic review for ${task.name}`,
+      cwd: workspacePath,
+      runTimeoutSeconds: 5 * 60,
+    });
+
+    if (!safeTrim(session.sessionKey)) {
+      throw new Error("OpenClaw returned an empty critic session key");
+    }
+
+    const deadline = Date.now() + 5 * 60 * 1_000;
+    let finalStatus: SessionStatus = { status: "unknown" };
+
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+      finalStatus = await this.openclawClient.getSessionStatus(session.sessionKey);
+      if (finalStatus.status !== "running" && finalStatus.status !== "unknown") {
+        break;
+      }
+    }
+
+    if (finalStatus.status === "running" || finalStatus.status === "unknown") {
+      throw new Error("Critic review timed out");
+    }
+
+    const history = await this.openclawClient.getSessionHistory(session.sessionKey, 20);
+    const response =
+      history
+        .filter((message) => message.role === "assistant")
+        .map((message) => message.content.trim())
+        .filter(Boolean)
+        .join("\n\n") ||
+      safeTrim(finalStatus.lastMessage) ||
+      "";
+    const parsed = this.parseCriticScore(response);
+
+    this.tracker.appendRunEvent(run.id, "status", {
+      critic_score: parsed.score,
+      critic_issues: parsed.issues,
+    });
+
+    return {
+      ...parsed,
+      response,
+    };
+  }
+
+  private parseCriticScore(response: string): { score: number; issues: string[] } {
+    const scoreMatch =
+      response.match(/\bscore\b[^0-9]{0,12}(10|[1-9])(?:\/10)?\b/i) ??
+      response.match(/\b(10|[1-9])\/10\b/) ??
+      response.match(/\b([1-9]|10)\b(?=\s*(?:out of 10|\/10))/i);
+    const score = scoreMatch ? Number(scoreMatch[1]) : 0;
+
+    const issues = response
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => /^[-*]\s+/.test(line) || /^\d+\.\s+/.test(line))
+      .map((line) => line.replace(/^[-*]\s+/, "").replace(/^\d+\.\s+/, ""))
+      .filter(Boolean);
+
+    return { score, issues };
+  }
+
+  private async readWorkspaceDiff(workspacePath: string): Promise<string> {
+    if (!existsSync(workspacePath)) {
+      return "";
+    }
+
+    try {
+      const { stdout } = await execFileAsync("git", ["diff", "--no-ext-diff"], {
+        cwd: workspacePath,
+        timeout: 15_000,
+        maxBuffer: 10 * 1024 * 1024,
+      });
+      return stdout.trim();
+    } catch {
+      return "";
+    }
   }
 
   private async pageOverseer(text: string): Promise<void> {

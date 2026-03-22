@@ -76,6 +76,7 @@ function ensureProjectPolicyColumns(db: Database.Database): void {
     (column) => column.name === 'allowed_tools',
   )
   const hasOverseer = columns.some((column) => column.name === 'overseer')
+  const hasAgentConfig = columns.some((column) => column.name === 'agent_config')
 
   if (!hasAutoApprove) {
     db.exec('ALTER TABLE projects ADD COLUMN auto_approve INTEGER DEFAULT 0')
@@ -95,6 +96,9 @@ function ensureProjectPolicyColumns(db: Database.Database): void {
   }
   if (!hasOverseer) {
     db.exec('ALTER TABLE projects ADD COLUMN overseer TEXT')
+  }
+  if (!hasAgentConfig) {
+    db.exec('ALTER TABLE projects ADD COLUMN agent_config TEXT DEFAULT NULL')
   }
   const hasStatus = columns.some((column) => column.name === 'status')
   if (!hasStatus) {

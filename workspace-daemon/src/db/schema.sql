@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS projects (
   spec TEXT,
   auto_approve INTEGER DEFAULT 0,
   overseer TEXT,
+  agent_config TEXT,
   max_concurrent INTEGER DEFAULT 2,
   required_checks TEXT DEFAULT 'tsc',
   allowed_tools TEXT DEFAULT 'git,shell',

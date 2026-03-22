@@ -65,6 +65,10 @@ export interface ProviderConcurrencyConfig {
   [adapterType: string]: number
 }
 
+export interface AgentRoleConfig {
+  roles?: Record<string, { agentId?: string; model?: string }>
+}
+
 export interface Project {
   id: string
   name: string
@@ -72,6 +76,7 @@ export interface Project {
   spec: string | null
   auto_approve: number
   overseer?: string | null
+  agent_config?: string | null
   max_concurrent: number
   required_checks: string
   allowed_tools: string
@@ -460,6 +465,7 @@ export interface CreateProjectInput {
   spec?: string | null
   auto_approve?: number
   overseer?: string | null
+  agent_config?: string | null
   max_concurrent?: number
   required_checks?: string | null
   allowed_tools?: string | null
