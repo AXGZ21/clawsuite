@@ -206,6 +206,7 @@ export function Conductor() {
   const [now, setNow] = useState(() => Date.now())
   const [liveOutputTick, setLiveOutputTick] = useState(0)
   const [fileViewMode, setFileViewMode] = useState<Record<string, 'preview' | 'source'>>({})
+  const [taskReplyDraft, setTaskReplyDraft] = useState('')
 
   // ── Workspace hook ────────────────────────────────────────────────────────
   const workspace = useConductorWorkspace({
@@ -426,6 +427,24 @@ export function Conductor() {
     () => new Map(taskRuns.map((r) => [r.task_id, r] as const)),
     [taskRuns],
   )
+
+  const handleTaskReply = useCallback(async (checkpointId?: string) => {
+    const message = taskReplyDraft.trim()
+    if (!message) return
+
+    const pendingCheckpoint = checkpointId
+      ? checkpoints.find((cp) => cp.id === checkpointId && (cp.status === 'pending' || cp.status === 'awaiting_review'))
+      : checkpoints.find((cp) => cp.status === 'pending' || cp.status === 'awaiting_review')
+
+    if (!pendingCheckpoint) return
+
+    await workspace.approveCheckpoint.mutateAsync({
+      id: pendingCheckpoint.id,
+      action: 'merge',
+      reviewer_notes: message,
+    })
+    setTaskReplyDraft('')
+  }, [checkpoints, taskReplyDraft, workspace.approveCheckpoint])
 
   // ── Checkpoint diff expansion ─────────────────────────────────────────────
   const [missionsPage, setMissionsPage] = useState(0)
@@ -1210,6 +1229,12 @@ export function Conductor() {
             {selectedTask ? (() => {
               const run = runByTaskId.get(selectedTask.id)
               const liveLines = run ? liveOutputByRunId.get(run.id) ?? [] : []
+              const selectedTaskPendingCheckpoint = run
+                ? checkpoints.find(
+                    (cp) =>
+                      cp.task_run_id === run.id && (cp.status === 'pending' || cp.status === 'awaiting_review'),
+                  )
+                : null
               return (
                 <div className="flex min-h-0 flex-1 flex-col space-y-4">
                   <div className="flex items-center justify-between">
@@ -1255,6 +1280,58 @@ export function Conductor() {
                         {liveLines.map((line, i) => (
                           <div key={i} className="whitespace-pre-wrap">{line}</div>
                         ))}
+                      </div>
+                      <div className="border-t border-[var(--theme-border)] px-4 py-3">
+                        <div className="mt-3 flex gap-2">
+                          <input
+                            type="text"
+                            value={taskReplyDraft}
+                            onChange={(e) => setTaskReplyDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && taskReplyDraft.trim()) {
+                                void handleTaskReply(selectedTaskPendingCheckpoint?.id)
+                              }
+                            }}
+                            placeholder="Reply to agent..."
+                            className="flex-1 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-muted-2)] focus:border-[var(--theme-accent)]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void handleTaskReply(selectedTaskPendingCheckpoint?.id)}
+                            disabled={!taskReplyDraft.trim() || !selectedTaskPendingCheckpoint}
+                            className="rounded-xl bg-[var(--theme-accent)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--theme-accent-strong)] disabled:opacity-40"
+                          >
+                            Send
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {liveLines.length === 0 && selectedTaskPendingCheckpoint && (
+                    <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Reply</p>
+                      <div className="mt-3 flex gap-2">
+                        <input
+                          type="text"
+                          value={taskReplyDraft}
+                          onChange={(e) => setTaskReplyDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && taskReplyDraft.trim()) {
+                              void handleTaskReply(selectedTaskPendingCheckpoint.id)
+                            }
+                          }}
+                          placeholder="Reply to agent..."
+                          className="flex-1 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-muted-2)] focus:border-[var(--theme-accent)]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void handleTaskReply(selectedTaskPendingCheckpoint.id)}
+                          disabled={!taskReplyDraft.trim()}
+                          className="rounded-xl bg-[var(--theme-accent)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--theme-accent-strong)] disabled:opacity-40"
+                        >
+                          Send
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1362,6 +1439,30 @@ export function Conductor() {
                                 className="rounded-full bg-red-500/10 px-3 py-1 text-[11px] font-medium text-red-300 transition-colors hover:bg-red-500/20"
                               >
                                 Reject
+                              </button>
+                            </div>
+                          </div>
+                          <div className="border-t border-amber-500/20 bg-[var(--theme-bg)] px-4 py-3">
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={taskReplyDraft}
+                                onChange={(e) => setTaskReplyDraft(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && taskReplyDraft.trim()) {
+                                    void handleTaskReply(cp.id)
+                                  }
+                                }}
+                                placeholder="Reply to agent..."
+                                className="flex-1 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-muted-2)] focus:border-[var(--theme-accent)]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void handleTaskReply(cp.id)}
+                                disabled={!taskReplyDraft.trim()}
+                                className="rounded-xl bg-[var(--theme-accent)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--theme-accent-strong)] disabled:opacity-40"
+                              >
+                                Send
                               </button>
                             </div>
                           </div>

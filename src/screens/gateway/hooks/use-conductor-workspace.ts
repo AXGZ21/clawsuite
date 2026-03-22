@@ -556,17 +556,47 @@ export function useConductorWorkspace(options?: {
   })
 
   const retryTaskRunMutation = useMutation({
-    mutationFn: async (runId: string) => {
-      await workspacePost(`/api/workspace/task-runs/${encodeURIComponent(runId)}/retry`)
+    mutationFn: async (params: string | { runId: string; message?: string }) => {
+      const runId = typeof params === 'string' ? params : params.runId
+      const message = typeof params === 'string' ? undefined : params.message
+      await workspacePost(
+        `/api/workspace/task-runs/${encodeURIComponent(runId)}/retry`,
+        message ? { message } : undefined,
+      )
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['workspace', 'task-runs'] })
     },
   })
 
+  const sendTaskRunMessageMutation = useMutation({
+    mutationFn: async (params: { id: string; message: string }) => {
+      const message = params.message.trim()
+      if (!message) throw new Error('Message is required')
+
+      try {
+        await workspacePost(`/api/workspace/task-runs/${encodeURIComponent(params.id)}/message`, {
+          message,
+        })
+      } catch {
+        await workspacePost(`/api/workspace/task-runs/${encodeURIComponent(params.id)}/retry`, {
+          message,
+        })
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['workspace', 'task-runs'] })
+      void queryClient.invalidateQueries({ queryKey: ['workspace', 'checkpoints'] })
+    },
+  })
+
   // ── Checkpoint mutations ─────────────────────────────────────────────────
   const approveCheckpointMutation = useMutation({
-    mutationFn: async (params: { id: string; action?: 'approve' | 'commit' | 'merge' | 'pr' }) => {
+    mutationFn: async (params: {
+      id: string
+      action?: 'approve' | 'commit' | 'merge' | 'pr'
+      reviewer_notes?: string
+    }) => {
       const suffix = params.action === 'commit'
         ? '/approve-and-commit'
         : params.action === 'merge'
@@ -574,7 +604,9 @@ export function useConductorWorkspace(options?: {
           : params.action === 'pr'
             ? '/approve-and-pr'
             : '/approve'
-      await workspacePost(`/api/workspace/checkpoints/${encodeURIComponent(params.id)}${suffix}`)
+      await workspacePost(`/api/workspace/checkpoints/${encodeURIComponent(params.id)}${suffix}`, {
+        reviewer_notes: params.reviewer_notes,
+      })
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['workspace', 'checkpoints'] })
@@ -766,6 +798,7 @@ export function useConductorWorkspace(options?: {
     stopMission: stopMissionMutation,
     stopTaskRun: stopTaskRunMutation,
     retryTaskRun: retryTaskRunMutation,
+    sendTaskRunMessage: sendTaskRunMessageMutation,
     approveCheckpoint: approveCheckpointMutation,
     rejectCheckpoint: rejectCheckpointMutation,
     launchMission,
