@@ -14,6 +14,7 @@ import {
   ListViewIcon,
   MessageMultiple01Icon,
   Moon02Icon,
+  Rocket01Icon,
   ServerStack01Icon,
   Sun02Icon,
   Task01Icon,
@@ -45,6 +46,7 @@ const GATEWAY_ITEMS: Array<OverflowItem> = [
   { icon: MessageMultiple01Icon, label: 'Chat', to: '/chat' },
   { icon: BotIcon, label: 'Agent Hub', to: '/hub' },
   { icon: Home01Icon, label: 'Workspace', to: '/workspace' },
+  { icon: Rocket01Icon, label: 'Conductor', to: '/conductor' },
   { icon: ServerStack01Icon, label: 'Channels', to: '/channels' },
   { icon: ChartLineData02Icon, label: 'Costs', to: '/costs' },
 ]

@@ -1,10 +1,6 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
+import { Conductor } from '@/screens/gateway/conductor'
 
 export const Route = createFileRoute('/conductor')({
-  beforeLoad: function redirectConductorRoute() {
-    throw redirect({
-      to: '/workspace',
-      replace: true,
-    })
-  },
+  component: Conductor,
 })
