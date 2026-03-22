@@ -4,11 +4,14 @@ import type { Mission } from "../types";
 
 const MISSION_STATUSES: Mission["status"][] = [
   "pending",
+  "decomposing",
+  "ready",
   "running",
+  "reviewing",
+  "revising",
   "paused",
   "completed",
   "failed",
-  "blocked",
   "stopped",
 ];
 
@@ -109,6 +112,36 @@ export function createMissionsRouter(tracker: Tracker): Router {
       return;
     }
     res.json({ ok: true });
+  });
+
+  router.patch("/:id/status", (req, res) => {
+    const nextStatus =
+      typeof req.body?.status === "string" ? req.body.status.trim() : "";
+    if (!isMissionStatus(nextStatus)) {
+      res.status(400).json({ error: "Invalid mission status" });
+      return;
+    }
+
+    const mission = tracker.getMission(req.params.id);
+    if (!mission) {
+      res.status(404).json({ error: "Mission not found" });
+      return;
+    }
+
+    if (!tracker.canTransitionMissionStatus(mission.status, nextStatus)) {
+      res.status(400).json({
+        error: `Invalid mission transition: ${mission.status} -> ${nextStatus}`,
+      });
+      return;
+    }
+
+    const updated = tracker.updateMissionLifecycleStatus(req.params.id, nextStatus);
+    if (!updated) {
+      res.status(500).json({ error: "Internal error" });
+      return;
+    }
+
+    res.json(updated);
   });
 
   return router;

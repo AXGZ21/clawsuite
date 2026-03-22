@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import {
   TooltipContent,
@@ -68,6 +69,7 @@ type ProjectContext = {
 
 type WorkspaceConfig = {
   autoApprove: boolean
+  overseer: string | null
 }
 
 const TAB_LABELS: Record<WorkspaceTab, string> = {
@@ -176,6 +178,7 @@ export function WorkspaceLayout({ search }: WorkspaceLayoutProps) {
     projectName: null,
   })
   const [showOfflineBanner, setShowOfflineBanner] = useState(false)
+  const [overseerDraft, setOverseerDraft] = useState('')
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -229,13 +232,16 @@ export function WorkspaceLayout({ search }: WorkspaceLayoutProps) {
   })
 
   const autoApproveMutation = useMutation({
-    mutationFn: async (enabled: boolean) =>
+    mutationFn: async (payload: {
+      auto_approve?: boolean
+      overseer?: string | null
+    }) =>
       (await apiRequest('/api/workspace/config', {
         method: 'PATCH',
         headers: {
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ auto_approve: enabled }),
+        body: JSON.stringify(payload),
       })) as WorkspaceConfig,
     onSuccess: (data) => {
       queryClient.setQueryData(['workspace', 'config'], data)
@@ -259,6 +265,14 @@ export function WorkspaceLayout({ search }: WorkspaceLayoutProps) {
     autoApproveMutation.data?.autoApprove ??
     workspaceConfigQuery.data?.autoApprove ??
     false
+  const overseerValue =
+    autoApproveMutation.data?.overseer ??
+    workspaceConfigQuery.data?.overseer ??
+    ''
+
+  useEffect(() => {
+    setOverseerDraft(overseerValue)
+  }, [overseerValue])
   const pendingReviewCount = statsQuery.data?.checkpointsPending ?? 0
   const runningCount = statsQuery.data?.running ?? 0
   const pageTitle =
@@ -427,7 +441,9 @@ export function WorkspaceLayout({ search }: WorkspaceLayoutProps) {
                       }
                       aria-label="Toggle hands-free mode"
                       onCheckedChange={(checked) => {
-                        void autoApproveMutation.mutate(Boolean(checked))
+                        void autoApproveMutation.mutate({
+                          auto_approve: Boolean(checked),
+                        })
                       }}
                       className={cn(
                         autoApproveEnabled
@@ -441,6 +457,28 @@ export function WorkspaceLayout({ search }: WorkspaceLayoutProps) {
                   </TooltipContent>
                 </TooltipRoot>
               </TooltipProvider>
+              {autoApproveEnabled ? (
+                <label className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-medium text-primary-600">
+                  <span>Overseer</span>
+                  <Input
+                    value={overseerDraft}
+                    onChange={(event) => {
+                      setOverseerDraft(event.target.value)
+                    }}
+                    onBlur={() => {
+                      void autoApproveMutation.mutate({
+                        overseer: overseerDraft.trim() || null,
+                      })
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter') return
+                      event.currentTarget.blur()
+                    }}
+                    placeholder="aurora"
+                    className="h-7 w-32 border-primary-200 bg-white px-2 text-xs text-primary-900 placeholder:text-primary-500"
+                  />
+                </label>
+              ) : null}
               <div
                 className={cn(
                   'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium',

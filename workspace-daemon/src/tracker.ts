@@ -20,6 +20,7 @@ import type {
   Mission,
   MissionProgressEvent,
   MissionStatus,
+  MissionStatusPayload,
   MissionWithProjectContext,
   Phase,
   Project,
@@ -337,6 +338,7 @@ export class Tracker extends EventEmitter {
         path,
         spec,
         auto_approve,
+        overseer,
         max_concurrent,
         required_checks,
         allowed_tools
@@ -345,6 +347,7 @@ export class Tracker extends EventEmitter {
         @path,
         @spec,
         @auto_approve,
+        @overseer,
         @max_concurrent,
         @required_checks,
         @allowed_tools
@@ -355,6 +358,7 @@ export class Tracker extends EventEmitter {
       path: input.path ?? null,
       spec: input.spec ?? null,
       auto_approve: input.auto_approve ?? 0,
+      overseer: input.overseer ?? null,
       max_concurrent: input.max_concurrent ?? 2,
       required_checks: input.required_checks ?? 'tsc',
       allowed_tools: input.allowed_tools ?? 'git,shell',
@@ -504,6 +508,9 @@ export class Tracker extends EventEmitter {
     )
       ? updates.auto_approve
       : existing.auto_approve
+    const nextOverseer = Object.prototype.hasOwnProperty.call(updates, 'overseer')
+      ? updates.overseer
+      : existing.overseer
     const nextMaxConcurrent = Object.prototype.hasOwnProperty.call(
       updates,
       'max_concurrent',
@@ -529,7 +536,7 @@ export class Tracker extends EventEmitter {
     this.db
       .prepare(
         `UPDATE projects
-         SET name = ?, path = ?, spec = ?, auto_approve = ?, max_concurrent = ?, required_checks = ?, allowed_tools = ?, status = ?
+         SET name = ?, path = ?, spec = ?, auto_approve = ?, overseer = ?, max_concurrent = ?, required_checks = ?, allowed_tools = ?, status = ?
          WHERE id = ?`,
       )
       .run(
@@ -537,6 +544,7 @@ export class Tracker extends EventEmitter {
         nextPath,
         nextSpec,
         nextAutoApprove,
+        nextOverseer,
         nextMaxConcurrent,
         nextRequiredChecks,
         nextAllowedTools,
@@ -844,48 +852,100 @@ export class Tracker extends EventEmitter {
       this.emitSse('task.updated', task)
       this.emitMissionProgress(task.mission_id)
 
-      // Auto-complete mission when all its tasks are completed
-      if (status === 'completed') {
-        this.checkMissionCompletion(task.mission_id)
-      }
+      this.refreshMissionStatus(task.mission_id)
     }
     return task
   }
 
-  private checkMissionCompletion(missionId: string): void {
-    const tasks = this.db
-      .prepare('SELECT status FROM tasks WHERE mission_id = ?')
-      .all(missionId) as Array<{ status: string }>
-
-    if (tasks.length === 0) return
-
-    const allCompleted = tasks.every((t) => t.status === 'completed')
-    if (!allCompleted) return
-
-    const mission = this.db
-      .prepare('SELECT * FROM missions WHERE id = ?')
-      .get(missionId) as { id: string; status: string } | undefined
-    if (!mission || mission.status === 'completed') return
-
-    this.db
-      .prepare("UPDATE missions SET status = 'completed' WHERE id = ?")
-      .run(missionId)
-    this.logActivity('mission.completed', 'mission', missionId, null, {
-      mission_id: missionId,
-      status: 'completed',
-      ...this.getMissionProjectContext(missionId),
-    })
-    this.emitSse('mission.updated', { id: missionId, status: 'completed' })
-
-    // Also check if the parent phase is complete
-    const phase = this.db
-      .prepare(
-        'SELECT phases.id FROM phases JOIN missions ON missions.phase_id = phases.id WHERE missions.id = ?',
-      )
-      .get(missionId) as { id: string } | undefined
-    if (phase) {
-      this.checkPhaseCompletion(phase.id)
+  refreshMissionStatus(missionId: string): Mission | null {
+    const mission = this.getMission(missionId)
+    if (!mission) {
+      return null
     }
+
+    if (mission.status === 'paused' || mission.status === 'stopped') {
+      return mission
+    }
+
+    const taskRows = this.db
+      .prepare(
+        `SELECT
+           tasks.id,
+           tasks.status,
+           (
+             SELECT checkpoints.status
+             FROM checkpoints
+             JOIN task_runs ON task_runs.id = checkpoints.task_run_id
+             WHERE task_runs.task_id = tasks.id
+             ORDER BY checkpoints.created_at DESC, checkpoints.id DESC
+             LIMIT 1
+           ) AS latest_checkpoint_status,
+           (
+             SELECT task_runs.status
+             FROM task_runs
+             WHERE task_runs.task_id = tasks.id
+             ORDER BY task_runs.attempt DESC, task_runs.id DESC
+             LIMIT 1 OFFSET 1
+           ) AS previous_run_status,
+           (
+             SELECT checkpoints.status
+             FROM checkpoints
+             JOIN task_runs ON task_runs.id = checkpoints.task_run_id
+             WHERE task_runs.task_id = tasks.id
+             ORDER BY task_runs.attempt DESC, checkpoints.created_at DESC, checkpoints.id DESC
+             LIMIT 1 OFFSET 1
+           ) AS previous_checkpoint_status,
+           (
+             SELECT MAX(task_runs.attempt)
+             FROM task_runs
+             WHERE task_runs.task_id = tasks.id
+               AND task_runs.status = 'failed'
+           ) AS max_failed_attempt
+         FROM tasks
+         WHERE tasks.mission_id = ?`,
+      )
+      .all(missionId) as Array<{
+      id: string
+      status: TaskStatus
+      latest_checkpoint_status: string | null
+      previous_run_status: string | null
+      previous_checkpoint_status: string | null
+      max_failed_attempt: number | null
+    }>
+
+    const hasPendingCheckpoint = taskRows.some(
+      (row) => row.latest_checkpoint_status === 'pending',
+    )
+    const hasRevisingTask = taskRows.some(
+      (row) =>
+        row.status === 'running' &&
+        (row.previous_checkpoint_status === 'rejected' ||
+          row.previous_checkpoint_status === 'revised' ||
+          row.previous_run_status === 'failed'),
+    )
+    const allCompleted =
+      taskRows.length > 0 &&
+      taskRows.every((row) => row.status === 'completed')
+    let nextStatus: MissionStatus = mission.status
+    if (hasPendingCheckpoint) {
+      nextStatus = 'reviewing'
+    } else if (hasRevisingTask) {
+      nextStatus = 'revising'
+    } else if (allCompleted) {
+      nextStatus = 'completed'
+    } else if (taskRows.some((row) => row.status === 'running')) {
+      nextStatus = 'running'
+    } else if (taskRows.some((row) => row.status === 'ready')) {
+      nextStatus = 'ready'
+    } else if (taskRows.length > 0 && taskRows.every((row) => row.status === 'pending')) {
+      nextStatus = 'pending'
+    }
+
+    if (nextStatus === mission.status) {
+      return mission
+    }
+
+    return this.updateMissionLifecycleStatus(missionId, nextStatus)
   }
 
   private checkPhaseCompletion(phaseId: string): void {
@@ -1679,6 +1739,10 @@ export class Tracker extends EventEmitter {
         this.logAuditEvent('checkpoint.rejected', checkpoint.id, 'checkpoint')
       }
       this.emitSse('checkpoint.updated', checkpoint)
+      const context = this.getCheckpointProjectContext(checkpoint.id)
+      if (typeof context.mission_id === 'string') {
+        this.refreshMissionStatus(context.mission_id)
+      }
     }
     return checkpoint
   }
@@ -2100,7 +2164,7 @@ export class Tracker extends EventEmitter {
     return { agent, activeTaskRun }
   }
 
-  getMissionStatus(id: string): MissionStatus | null {
+  getMissionStatus(id: string): MissionStatusPayload | null {
     const mission = this.getMission(id)
     if (!mission) {
       return null
@@ -2128,7 +2192,7 @@ export class Tracker extends EventEmitter {
          WHERE tasks.mission_id = ?
          ORDER BY tasks.sort_order ASC, tasks.created_at ASC`,
       )
-      .all(id) as MissionStatus['task_breakdown']
+      .all(id) as MissionStatusPayload['task_breakdown']
 
     const totalCount = taskBreakdown.length
     const completedCount = taskBreakdown.filter(
@@ -2195,15 +2259,13 @@ export class Tracker extends EventEmitter {
   }
 
   startMission(id: string): boolean {
-    const result = this.db
-      .prepare("UPDATE missions SET status = 'running' WHERE id = ?")
-      .run(id)
+    const result = this.updateMissionLifecycleStatus(id, 'running')
     this.db
       .prepare(
         "UPDATE tasks SET status = 'pending' WHERE mission_id = ? AND status = 'paused'",
       )
       .run(id)
-    if (result.changes > 0) {
+    if (result) {
       this.logActivity('mission.started', 'mission', id, null, {
         mission_id: id,
         status: 'running',
@@ -2213,34 +2275,30 @@ export class Tracker extends EventEmitter {
       this.refreshMissionTaskStatuses(id)
       this.emitMissionProgress(id)
     }
-    return result.changes > 0
+    return Boolean(result)
   }
 
   pauseMission(id: string): boolean {
-    const result = this.db
-      .prepare("UPDATE missions SET status = 'paused' WHERE id = ?")
-      .run(id)
+    const result = this.updateMissionLifecycleStatus(id, 'paused')
     this.db
       .prepare(
         "UPDATE tasks SET status = 'paused' WHERE mission_id = ? AND status IN ('pending', 'ready', 'running')",
       )
       .run(id)
-    if (result.changes > 0) {
+    if (result) {
       this.emitMissionProgress(id)
     }
-    return result.changes > 0
+    return Boolean(result)
   }
 
   resumeMission(id: string): boolean {
-    const result = this.db
-      .prepare("UPDATE missions SET status = 'running' WHERE id = ?")
-      .run(id)
+    const result = this.updateMissionLifecycleStatus(id, 'running')
     this.db
       .prepare(
         "UPDATE tasks SET status = 'pending' WHERE mission_id = ? AND status = 'paused'",
       )
       .run(id)
-    if (result.changes > 0) {
+    if (result) {
       this.logActivity('mission.started', 'mission', id, null, {
         mission_id: id,
         status: 'running',
@@ -2250,22 +2308,91 @@ export class Tracker extends EventEmitter {
       this.refreshMissionTaskStatuses(id)
       this.emitMissionProgress(id)
     }
-    return result.changes > 0
+    return Boolean(result)
   }
 
   stopMission(id: string): boolean {
-    const result = this.db
-      .prepare("UPDATE missions SET status = 'stopped' WHERE id = ?")
-      .run(id)
+    const result = this.updateMissionLifecycleStatus(id, 'stopped')
     this.db
       .prepare(
         "UPDATE tasks SET status = 'stopped' WHERE mission_id = ? AND status != 'completed'",
       )
       .run(id)
-    if (result.changes > 0) {
+    if (result) {
       this.emitMissionProgress(id)
     }
-    return result.changes > 0
+    return Boolean(result)
+  }
+
+  canTransitionMissionStatus(
+    current: MissionStatus,
+    next: MissionStatus,
+  ): boolean {
+    if (current === next) {
+      return true
+    }
+
+    const allowedTransitions: Record<MissionStatus, MissionStatus[]> = {
+      pending: ['decomposing', 'ready', 'running', 'paused', 'stopped', 'failed'],
+      decomposing: ['ready', 'failed', 'paused', 'stopped'],
+      ready: ['running', 'paused', 'stopped', 'failed'],
+      running: ['reviewing', 'revising', 'completed', 'failed', 'paused', 'stopped', 'ready'],
+      reviewing: ['revising', 'running', 'completed', 'failed', 'paused', 'stopped'],
+      revising: ['running', 'reviewing', 'completed', 'failed', 'paused', 'stopped'],
+      completed: [],
+      failed: ['pending', 'ready', 'running', 'stopped'],
+      paused: ['pending', 'ready', 'running', 'reviewing', 'revising', 'stopped'],
+      stopped: [],
+    }
+
+    return allowedTransitions[current].includes(next)
+  }
+
+  updateMissionLifecycleStatus(
+    missionId: string,
+    status: MissionStatus,
+  ): Mission | null {
+    const current = this.getMission(missionId)
+    if (!current) {
+      return null
+    }
+
+    if (!this.canTransitionMissionStatus(current.status, status)) {
+      return null
+    }
+
+    if (current.status === status) {
+      return current
+    }
+
+    this.db
+      .prepare('UPDATE missions SET status = ? WHERE id = ?')
+      .run(status, missionId)
+
+    const mission = this.getMission(missionId)
+    if (!mission) {
+      return null
+    }
+
+    if (status === 'completed') {
+      this.logActivity('mission.completed', 'mission', missionId, null, {
+        mission_id: missionId,
+        status,
+        ...this.getMissionProjectContext(missionId),
+      })
+
+      const phase = this.db
+        .prepare(
+          'SELECT phases.id FROM phases JOIN missions ON missions.phase_id = phases.id WHERE missions.id = ?',
+        )
+        .get(missionId) as { id: string } | undefined
+      if (phase) {
+        this.checkPhaseCompletion(phase.id)
+      }
+    }
+
+    this.emitSse('mission.updated', mission)
+    return mission
   }
 
   logActivity(

@@ -44,6 +44,7 @@ export type WorkspaceProject = {
   path?: string
   spec?: string
   auto_approve?: number
+  overseer?: string
   max_concurrent?: number
   required_checks?: string
   allowed_tools?: string
@@ -366,6 +367,7 @@ export function normalizeProject(value: unknown): WorkspaceProject {
     path: asString(record?.path),
     spec: asString(record?.spec),
     auto_approve: asNumber(record?.auto_approve),
+    overseer: asString(record?.overseer),
     max_concurrent: asNumber(record?.max_concurrent),
     required_checks: asString(record?.required_checks),
     allowed_tools: asString(record?.allowed_tools),

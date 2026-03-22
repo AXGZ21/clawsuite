@@ -144,6 +144,7 @@ export function createProjectsRouter(tracker: Tracker): Router {
       path,
       spec,
       auto_approve,
+      overseer,
       max_concurrent,
       required_checks,
       allowed_tools,
@@ -152,6 +153,7 @@ export function createProjectsRouter(tracker: Tracker): Router {
       path?: string | null
       spec?: string | null
       auto_approve?: number | boolean | null
+      overseer?: string | null
       max_concurrent?: number | null
       required_checks?: string | string[] | null
       allowed_tools?: string | string[] | null
@@ -198,6 +200,7 @@ export function createProjectsRouter(tracker: Tracker): Router {
       path: path ?? null,
       spec: spec ?? null,
       auto_approve: auto_approve ? 1 : 0,
+      overseer: typeof overseer === 'string' ? overseer.trim() || null : null,
       max_concurrent: normalizedMaxConcurrent,
       required_checks: normalizedChecks.join(','),
       allowed_tools: normalizedTools.join(','),

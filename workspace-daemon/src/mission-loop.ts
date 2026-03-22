@@ -186,7 +186,9 @@ export class MissionLoop {
     try {
       await this.processRetries();
       await this.processRunningSessions();
+      this.refreshActiveMissionStatuses();
       await this.processReadyTasks();
+      this.refreshActiveMissionStatuses();
     } finally {
       this.runningTick = false;
       if (this.pendingImmediateTick) {
@@ -211,7 +213,12 @@ export class MissionLoop {
       }
 
       const mission = this.tracker.getMission(task.mission_id);
-      if (!mission || mission.status !== "running") {
+      if (
+        !mission ||
+        mission.status === "paused" ||
+        mission.status === "stopped" ||
+        mission.status === "reviewing"
+      ) {
         continue;
       }
 
@@ -282,8 +289,16 @@ export class MissionLoop {
   }
 
   private async processReadyTasks(): Promise<void> {
-    const runningMissions = this.tracker.listMissions({ status: "running" });
-    if (runningMissions.length === 0) {
+    const activeMissions = this.tracker
+      .listMissions({})
+      .filter(
+        (mission) =>
+          mission.status !== "paused" &&
+          mission.status !== "stopped" &&
+          mission.status !== "completed" &&
+          mission.status !== "failed",
+      );
+    if (activeMissions.length === 0) {
       return;
     }
 
@@ -305,7 +320,11 @@ export class MissionLoop {
       );
     }
 
-    for (const mission of runningMissions) {
+    for (const mission of activeMissions) {
+      if (mission.status === "reviewing") {
+        continue;
+      }
+
       const project = this.tracker.getProject(mission.project_id);
       if (!project) {
         continue;
@@ -468,15 +487,40 @@ export class MissionLoop {
 
     const project = this.tracker.getProject(projectId);
     const autoApproveEnabled = Number(project?.auto_approve ?? 0) === 1;
-    if (
-      latestCheckpoint.status !== "approved" &&
-      autoApproveEnabled &&
-      qaResult.verdict === "APPROVED" &&
-      qaResult.confidence >= this.config.qualityThreshold
-    ) {
-      this.tracker.approveCheckpoint(
-        latestCheckpoint.id,
-        qaResult.issues.length > 0 ? qaResult.issues.join("\n") : undefined,
+    const overseerId =
+      safeTrim(project?.overseer) ?? safeTrim(this.config.overseerAgentId) ?? null;
+    const needsHumanInput = this.didAgentAskForHumanInput(status.lastMessage);
+
+    if (latestCheckpoint.status !== "approved" && autoApproveEnabled) {
+      if (
+        qaResult.verdict === "APPROVED" &&
+        qaResult.confidence >= this.config.qualityThreshold
+      ) {
+        this.tracker.approveCheckpoint(
+          latestCheckpoint.id,
+          qaResult.issues.length > 0 ? qaResult.issues.join("\n") : undefined,
+        );
+      } else if (qaResult.confidence >= 0.5 && overseerId) {
+        await this.pageOverseer(
+          `Workspace review needed: ${projectName} / ${task.name}. QA score: ${qaResult.confidence.toFixed(
+            2,
+          )}. Review checkpoint ${latestCheckpoint.id}.`,
+        );
+      } else {
+        await this.createRevisionOrEscalate(
+          task,
+          run.attempt,
+          qaResult.issues.join("\n") || qaResult.suggestion || "QA requested revisions.",
+          overseerId,
+        );
+      }
+    }
+
+    if (autoApproveEnabled && needsHumanInput && overseerId) {
+      await this.pageOverseer(
+        `Workspace task needs human input: ${projectName} / ${task.name}. Agent message: ${safeTrim(
+          status.lastMessage,
+        )}.`,
       );
     }
 
@@ -510,9 +554,15 @@ export class MissionLoop {
 
   private scheduleRetry(task: Task, attempt: number, error: string | null): void {
     if (attempt >= this.config.maxRetries) {
-      if (this.config.overseerEnabled && this.config.overseerAgentId) {
-        void this.openclawClient.systemEvent(
-          `Mission loop failed task "${task.name}" after ${attempt} attempts: ${error ?? "Unknown error"}`,
+      const mission = this.tracker.getMissionWithProjectContext(task.mission_id);
+      const project = mission ? this.tracker.getProject(mission.project_id) : null;
+      const autoApproveEnabled = Number(project?.auto_approve ?? 0) === 1;
+      const overseerId =
+        safeTrim(project?.overseer) ?? safeTrim(this.config.overseerAgentId) ?? null;
+      this.tracker.updateMissionLifecycleStatus(task.mission_id, "failed");
+      if (autoApproveEnabled && overseerId) {
+        void this.pageOverseer(
+          `Workspace task failed after ${attempt} retries: ${task.name}. Needs manual intervention.`,
         ).catch(() => undefined);
       }
       return;
@@ -661,5 +711,59 @@ export class MissionLoop {
     }
 
     return Date.now() - startedAt > this.config.sessionTimeoutMs;
+  }
+
+  private refreshActiveMissionStatuses(): void {
+    const missions = this.tracker.listMissions({});
+    for (const mission of missions) {
+      if (mission.status === "paused" || mission.status === "stopped") {
+        continue;
+      }
+      this.tracker.refreshMissionStatus(mission.id);
+    }
+  }
+
+  private didAgentAskForHumanInput(lastMessage?: string): boolean {
+    const message = safeTrim(lastMessage)?.toLowerCase();
+    if (!message) {
+      return false;
+    }
+
+    return (
+      message.includes("need human input") ||
+      message.includes("need your input") ||
+      message.includes("please advise") ||
+      message.includes("which should i") ||
+      message.includes("can you clarify") ||
+      message.includes("?")
+    );
+  }
+
+  private async createRevisionOrEscalate(
+    task: Task,
+    attempt: number,
+    feedback: string,
+    overseerId: string | null,
+  ): Promise<void> {
+    if (attempt >= this.config.maxRetries) {
+      this.tracker.updateMissionLifecycleStatus(task.mission_id, "failed");
+      if (overseerId) {
+        await this.pageOverseer(
+          `Workspace task failed after ${attempt} retries: ${task.name}. Needs manual intervention.`,
+        );
+      }
+      return;
+    }
+
+    this.tracker.updateTask(task.id, {
+      description: `${task.description ?? ""}\n\nQA revision notes:\n${feedback}`.trim(),
+    });
+    this.tracker.createPendingTaskRun(task.id, task.agent_id, null, attempt + 1);
+    this.tracker.setTaskStatus(task.id, "pending");
+    this.requestTick();
+  }
+
+  private async pageOverseer(text: string): Promise<void> {
+    await this.openclawClient.systemEvent(text);
   }
 }

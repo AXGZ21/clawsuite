@@ -75,6 +75,7 @@ function ensureProjectPolicyColumns(db: Database.Database): void {
   const hasAllowedTools = columns.some(
     (column) => column.name === 'allowed_tools',
   )
+  const hasOverseer = columns.some((column) => column.name === 'overseer')
 
   if (!hasAutoApprove) {
     db.exec('ALTER TABLE projects ADD COLUMN auto_approve INTEGER DEFAULT 0')
@@ -91,6 +92,9 @@ function ensureProjectPolicyColumns(db: Database.Database): void {
     db.exec(
       "ALTER TABLE projects ADD COLUMN allowed_tools TEXT DEFAULT 'git,shell'",
     )
+  }
+  if (!hasOverseer) {
+    db.exec('ALTER TABLE projects ADD COLUMN overseer TEXT')
   }
   const hasStatus = columns.some((column) => column.name === 'status')
   if (!hasStatus) {

@@ -38,6 +38,18 @@ export type TaskRunStatus =
 
 export type CheckpointStatus = 'pending' | 'approved' | 'rejected' | 'revised'
 
+export type MissionStatus =
+  | 'pending'
+  | 'decomposing'
+  | 'ready'
+  | 'running'
+  | 'reviewing'
+  | 'revising'
+  | 'completed'
+  | 'failed'
+  | 'paused'
+  | 'stopped'
+
 export type RunEventType =
   | 'started'
   | 'output'
@@ -59,6 +71,7 @@ export interface Project {
   path: string | null
   spec: string | null
   auto_approve: number
+  overseer?: string | null
   max_concurrent: number
   required_checks: string
   allowed_tools: string
@@ -79,7 +92,7 @@ export interface Mission {
   id: string
   phase_id: string
   name: string
-  status: EntityStatus
+  status: MissionStatus
   progress: number
 }
 
@@ -105,7 +118,7 @@ export interface MissionProgressEvent {
   total_count: number
 }
 
-export interface MissionStatus {
+export interface MissionStatusPayload {
   mission: Pick<Mission, 'id' | 'name' | 'status' | 'progress'>
   task_breakdown: MissionStatusTask[]
   running_agents: string[]
@@ -446,6 +459,7 @@ export interface CreateProjectInput {
   path?: string | null
   spec?: string | null
   auto_approve?: number
+  overseer?: string | null
   max_concurrent?: number
   required_checks?: string | null
   allowed_tools?: string | null

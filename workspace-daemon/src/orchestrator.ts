@@ -66,6 +66,7 @@ export class Orchestrator extends EventEmitter {
   private readonly tracker: Tracker;
   private readonly missionLoop: MissionLoop;
   private autoApprove: boolean;
+  private overseer: string | null;
   readonly state: OrchestratorState;
 
   constructor(tracker: Tracker, missionLoop: MissionLoop) {
@@ -74,6 +75,7 @@ export class Orchestrator extends EventEmitter {
     this.missionLoop = missionLoop;
     const workflowConfig = getWorkflowConfig();
     this.autoApprove = workflowConfig.autoApprove;
+    this.overseer = "aurora";
     this.state = {
       pollIntervalMs: workflowConfig.pollIntervalMs,
       maxConcurrentAgents: workflowConfig.maxConcurrentAgents,
@@ -99,6 +101,14 @@ export class Orchestrator extends EventEmitter {
 
   getAutoApprove(): boolean {
     return this.autoApprove;
+  }
+
+  setOverseer(overseer: string | null): void {
+    this.overseer = overseer;
+  }
+
+  getOverseer(): string | null {
+    return this.overseer;
   }
 
   async triggerTask(taskId: string): Promise<boolean> {

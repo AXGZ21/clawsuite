@@ -44,7 +44,10 @@ export function createServer(): {
   const app = express();
   const tracker = new Tracker();
   const openclawClient = new OpenClawClient();
-  const missionLoop = new MissionLoop(tracker, openclawClient);
+  const missionLoop = new MissionLoop(tracker, openclawClient, {
+    overseerEnabled: true,
+    overseerAgentId: "aurora",
+  });
   const orchestrator = new Orchestrator(tracker, missionLoop);
 
   app.use(cors());
@@ -64,10 +67,53 @@ export function createServer(): {
   app.get("/api/workspace/config", (_req, res) => {
     res.json({
       autoApprove: orchestrator.getAutoApprove(),
+      overseer: orchestrator.getOverseer(),
     });
   });
 
   app.patch("/api/workspace/config", (req, res) => {
+    const autoApprove = req.body?.auto_approve;
+    const overseer =
+      typeof req.body?.overseer === "string"
+        ? req.body.overseer.trim() || null
+        : req.body?.overseer === null || req.body?.overseer === undefined
+          ? undefined
+          : "__invalid__";
+
+    if (
+      typeof autoApprove !== "boolean" &&
+      autoApprove !== undefined &&
+      autoApprove !== null
+    ) {
+      res.status(400).json({ error: "auto_approve is required" });
+      return;
+    }
+    if (overseer === "__invalid__") {
+      res.status(400).json({ error: "overseer must be a string" });
+      return;
+    }
+
+    if (typeof autoApprove === "boolean") {
+      orchestrator.setAutoApprove(autoApprove);
+    }
+    if (overseer !== undefined) {
+      orchestrator.setOverseer(overseer);
+    }
+    res.json({
+      autoApprove: orchestrator.getAutoApprove(),
+      overseer: orchestrator.getOverseer(),
+    });
+  });
+
+  app.get("/api/workspace/config/overseer", (_req, res) => {
+    res.json({ overseer: orchestrator.getOverseer() });
+  });
+
+  app.get("/api/workspace/config/auto-approve", (_req, res) => {
+    res.json({ autoApprove: orchestrator.getAutoApprove() });
+  });
+
+  app.post("/api/workspace/config/auto-approve", (req, res) => {
     const autoApprove = req.body?.auto_approve;
     if (typeof autoApprove !== "boolean") {
       res.status(400).json({ error: "auto_approve is required" });
@@ -75,9 +121,23 @@ export function createServer(): {
     }
 
     orchestrator.setAutoApprove(autoApprove);
-    res.json({
-      autoApprove: orchestrator.getAutoApprove(),
-    });
+    res.json({ autoApprove: orchestrator.getAutoApprove() });
+  });
+
+  app.post("/api/workspace/config/overseer", (req, res) => {
+    const overseer =
+      typeof req.body?.overseer === "string"
+        ? req.body.overseer.trim() || null
+        : req.body?.overseer === null
+          ? null
+          : "__invalid__";
+    if (overseer === "__invalid__") {
+      res.status(400).json({ error: "overseer is required" });
+      return;
+    }
+
+    orchestrator.setOverseer(overseer);
+    res.json({ overseer: orchestrator.getOverseer() });
   });
 
   app.get("/api/workspace/recent-paths", (_req, res) => {
