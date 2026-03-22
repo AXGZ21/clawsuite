@@ -36,28 +36,21 @@ const QUICK_ACTIONS: Array<{
   id: QuickActionId
   label: string
   icon: typeof Search01Icon
-  prompt: string
 }> = [
   {
     id: 'research',
     label: 'Research',
     icon: Search01Icon,
-    prompt:
-      'Research the problem space, gather constraints, compare approaches, and propose the best execution plan.',
   },
   {
     id: 'build',
     label: 'Build',
     icon: PlayIcon,
-    prompt:
-      'Build the requested feature end-to-end, including implementation, validation, and a concise delivery summary.',
   },
   {
     id: 'review',
     label: 'Review',
     icon: TaskDone01Icon,
-    prompt:
-      'Review the current implementation for correctness, regressions, missing tests, and release risks.',
   },
 ]
 
@@ -101,13 +94,6 @@ function toProjectPath(goal: string): string {
 function formatAgentRole(agentType: string | null): string {
   if (!agentType) return 'Unassigned'
   return agentType.charAt(0).toUpperCase() + agentType.slice(1)
-}
-
-function appendQuickActionPrompt(goal: string, prompt: string): string {
-  const trimmedGoal = goal.trim()
-  if (!trimmedGoal) return prompt
-  if (trimmedGoal.includes(prompt)) return goal
-  return `${trimmedGoal}\n\n${prompt}`
 }
 
 export function WorkspaceMissionInput({
@@ -439,12 +425,7 @@ export function WorkspaceMissionInput({
                 <button
                   key={action.id}
                   type="button"
-                  onClick={() => {
-                    setSelectedAction(action.id)
-                    setGoalDraft((current) =>
-                      appendQuickActionPrompt(current, action.prompt),
-                    )
-                  }}
+                  onClick={() => setSelectedAction(action.id)}
                   className={cn(
                     'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                     selectedAction === action.id
