@@ -787,90 +787,17 @@ export function Conductor() {
 
   if (phase === 'preview' && decomposedTasks) {
     const enabledCount = decomposedTasks.filter((t) => t.enabled).length
+    const agentDirectory = (workspace as unknown as { models: { data?: Array<{ id: string; name: string; provider: string | null; free: boolean; description: string | null }> } }).models.data ?? []
     return (
       <div className="h-full min-h-full bg-[var(--theme-bg)] text-[var(--theme-text)]" style={THEME_STYLE}>
-        <main className="mx-auto flex min-h-full max-w-[720px] flex-col items-center justify-center px-6 py-12">
-          <div className="w-full space-y-6">
-            <div className="space-y-2 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--theme-accent)]">Mission Plan</p>
-              <h1 className="text-2xl font-semibold tracking-tight">{goalDraft.length > 80 ? `${goalDraft.slice(0, 77)}…` : goalDraft}</h1>
-              <p className="text-sm text-[var(--theme-muted-2)]">{decomposedTasks.length} tasks decomposed — toggle any off before launch.</p>
-            </div>
-
-            <div className="space-y-2">
-              {decomposedTasks.map((task, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => {
-                    setDecomposedTasks((prev) =>
-                      prev ? prev.map((t, j) => j === i ? { ...t, enabled: !t.enabled } : t) : prev
-                    )
-                  }}
-                  className={cn(
-                    'flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-colors',
-                    task.enabled
-                      ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-soft)]'
-                      : 'border-[var(--theme-border)] bg-[var(--theme-card)] opacity-50',
-                  )}
-                >
-                  <span className={cn('mt-1 flex size-5 shrink-0 items-center justify-center rounded-md border text-xs', task.enabled ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)] text-white' : 'border-[var(--theme-border2)]')}>
-                    {task.enabled ? '✓' : ''}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-[var(--theme-text)]">{task.title}</p>
-                    {task.description && <p className="mt-0.5 text-xs text-[var(--theme-muted)]">{task.description}</p>}
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      <select
-                        value={task.suggested_agent_type || 'auto'}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => {
-                          e.stopPropagation()
-                          setDecomposedTasks((prev) =>
-                            prev ? prev.map((t, j) => j === i ? { ...t, agent: e.target.value, suggested_agent_type: e.target.value } : t) : prev
-                          )
-                        }}
-                        className="rounded-full border border-[var(--theme-border)] bg-[var(--theme-card)] px-2 py-0.5 text-[10px] text-[var(--theme-muted-2)] outline-none"
-                      >
-                        {(workspace.models.data && workspace.models.data.length > 0
-                          ? workspace.models.data
-                          : [
-                              { id: 'auto', name: 'Auto (best available)', free: true },
-                              { id: 'codex', name: 'Codex (GPT-5.4)', free: true },
-                              { id: 'sonnet46-coding', name: 'Claude Sonnet 4.6', free: true },
-                              { id: 'minimax-fast', name: 'MiniMax Lightning', free: false },
-                            ]
-                        ).map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.name}{m.free ? ' ✦' : ''}
-                          </option>
-                        ))}
-                      </select>
-                      {task.depends_on.map((dependency) => (
-                        <span
-                          key={`${task.title}-${dependency}`}
-                          className="inline-block rounded-full border border-[var(--theme-border)] px-2 py-0.5 text-[10px] text-[var(--theme-muted-2)]"
-                        >
-                          Depends on {dependency}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Hands-free toggle */}
-            <div className="flex items-center justify-between rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-[var(--theme-text)]">
-                  {workspace.config.data?.autoApprove ? '🤖 Hands-free mode' : '👀 Supervised mode'}
-                </p>
-                <p className="text-xs text-[var(--theme-muted)]">
-                  {workspace.config.data?.autoApprove
-                    ? 'Auto-approve tasks when quality checks pass'
-                    : 'Review and approve each task before proceeding'}
-                </p>
+        <main className="mx-auto flex min-h-full max-w-[820px] flex-col px-6 py-12">
+          <div className="w-full space-y-8">
+            {/* Header with hands-free toggle */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--theme-accent)]">Mission Plan</p>
+                <h1 className="text-2xl font-semibold tracking-tight">{goalDraft.length > 80 ? `${goalDraft.slice(0, 77)}…` : goalDraft}</h1>
+                <p className="text-sm text-[var(--theme-muted-2)]">{decomposedTasks.length} tasks · {enabledCount} enabled</p>
               </div>
               <button
                 type="button"
@@ -879,17 +806,110 @@ export function Conductor() {
                   workspace.updateConfig.mutate({ auto_approve: next })
                 }}
                 className={cn(
-                  'relative ml-3 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                  workspace.config.data?.autoApprove ? 'bg-[var(--theme-accent)]' : 'bg-[var(--theme-border2)]',
+                  'flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                  workspace.config.data?.autoApprove
+                    ? 'border-sky-400/30 bg-sky-500/10 text-sky-300'
+                    : 'border-amber-400/30 bg-amber-500/10 text-amber-300',
                 )}
               >
-                <span
-                  className={cn(
-                    'pointer-events-none inline-block size-5 rounded-full bg-white shadow transition-transform',
-                    workspace.config.data?.autoApprove ? 'translate-x-5' : 'translate-x-0',
-                  )}
-                />
+                {workspace.config.data?.autoApprove ? '🤖 Hands-free' : '👀 Supervised'}
               </button>
+            </div>
+
+            {/* Available agents */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-muted)]">Available Agents</p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {(agentDirectory.length > 0 ? agentDirectory : [
+                  { id: 'auto', name: 'Auto', provider: null, free: true, description: 'Picks the best agent for each task' },
+                  { id: 'codex', name: 'Codex (GPT-5.4)', provider: 'openai-codex', free: true, description: 'Multi-file coding, builds, refactors' },
+                  { id: 'sonnet46-coding', name: 'Claude Sonnet 4.6', provider: 'anthropic-oauth', free: true, description: 'Reasoning, reviews, planning' },
+                  { id: 'minimax-fast', name: 'MiniMax Lightning', provider: 'minimax', free: false, description: 'Fast research and synthesis' },
+                  { id: 'nemotron-super', name: 'Nemotron 120B', provider: 'openrouter', free: true, description: 'Free general purpose' },
+                ]).map((agent) => (
+                  <div
+                    key={agent.id}
+                    className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-3 transition-colors hover:border-[var(--theme-accent)]"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-[var(--theme-text)]">{agent.name}</p>
+                      {agent.free && (
+                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">Free</span>
+                      )}
+                    </div>
+                    {agent.description && (
+                      <p className="mt-1 text-xs text-[var(--theme-muted)]">{agent.description}</p>
+                    )}
+                    {agent.provider && (
+                      <p className="mt-1 text-[10px] text-[var(--theme-muted-2)]">{agent.provider}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tasks with agent assignment */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-muted)]">Task Breakdown</p>
+              <div className="space-y-2">
+                {decomposedTasks.map((task, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setDecomposedTasks((prev) =>
+                        prev ? prev.map((t, j) => j === i ? { ...t, enabled: !t.enabled } : t) : prev
+                      )
+                    }}
+                    className={cn(
+                      'flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-colors',
+                      task.enabled
+                        ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-soft)]'
+                        : 'border-[var(--theme-border)] bg-[var(--theme-card)] opacity-50',
+                    )}
+                  >
+                    <span className={cn('mt-1 flex size-5 shrink-0 items-center justify-center rounded-md border text-xs', task.enabled ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)] text-white' : 'border-[var(--theme-border2)]')}>
+                      {task.enabled ? '✓' : ''}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[var(--theme-text)]">{task.title}</p>
+                      {task.description && <p className="mt-0.5 text-xs text-[var(--theme-muted)]">{task.description}</p>}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <select
+                          value={task.suggested_agent_type || 'auto'}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            e.stopPropagation()
+                            setDecomposedTasks((prev) =>
+                              prev ? prev.map((t, j) => j === i ? { ...t, agent: e.target.value, suggested_agent_type: e.target.value } : t) : prev
+                            )
+                          }}
+                          className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-card)] px-2.5 py-1 text-xs text-[var(--theme-text)] outline-none"
+                        >
+                          {(agentDirectory.length > 0 ? agentDirectory : [
+                            { id: 'auto', name: 'Auto (best available)', free: true },
+                            { id: 'codex', name: 'Codex (GPT-5.4)', free: true },
+                            { id: 'sonnet46-coding', name: 'Claude Sonnet 4.6', free: true },
+                            { id: 'minimax-fast', name: 'MiniMax Lightning', free: false },
+                          ]).map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name}{m.free ? ' ✦' : ''}
+                            </option>
+                          ))}
+                        </select>
+                        {task.depends_on.map((dependency) => (
+                          <span
+                            key={`${task.title}-${dependency}`}
+                            className="inline-block rounded-full border border-[var(--theme-border)] px-2 py-0.5 text-[10px] text-[var(--theme-muted-2)]"
+                          >
+                            depends on {dependency}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center justify-between gap-3">
