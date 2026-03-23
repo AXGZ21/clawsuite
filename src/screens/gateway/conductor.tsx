@@ -192,12 +192,19 @@ function getRelativeOutputPath(outputFile: string, projectPath: string | null | 
   return normalizedOutput.includes('..') ? null : normalizedOutput
 }
 
-function getDispatchFileUrl(relativePath: string): string {
-  return `/api/workspace/dispatch/files/${relativePath
+function getDispatchFileUrl(relativePath: string, projectPath?: string | null): string {
+  const encodedPath = relativePath
     .split('/')
     .filter(Boolean)
     .map((segment) => encodeURIComponent(segment))
-    .join('/')}`
+    .join('/')
+
+  const query =
+    typeof projectPath === 'string' && projectPath.trim().length > 0
+      ? `?project=${encodeURIComponent(projectPath.trim())}`
+      : ''
+
+  return `/api/workspace/dispatch/files/${encodedPath}${query}`
 }
 
 function formatFileSize(size: number): string {
@@ -445,6 +452,16 @@ export function Conductor() {
         }),
     [workspace.projectFiles.data],
   )
+  const htmlPreviewFiles = useMemo(() => {
+    const projectPath = dispatchState?.options.project_path ?? workspace.projectFiles.data?.projectPath ?? null
+
+    return visibleProjectFiles
+      .filter((file) => isHtmlFile(file.relativePath))
+      .map((file) => ({
+        relativePath: file.relativePath,
+        fileUrl: getDispatchFileUrl(file.relativePath, projectPath),
+      }))
+  }, [dispatchState?.options.project_path, visibleProjectFiles, workspace.projectFiles.data?.projectPath])
   const completedOutputFiles = useMemo(() => {
     const projectPath = dispatchState?.options.project_path ?? workspace.projectFiles.data?.projectPath ?? null
 
@@ -457,7 +474,7 @@ export function Conductor() {
           taskId: task.id,
           taskTitle: task.title,
           relativePath,
-          fileUrl: getDispatchFileUrl(relativePath),
+          fileUrl: getDispatchFileUrl(relativePath, projectPath),
         }
       })
       .filter((file, index, files): file is NonNullable<typeof file> => {
@@ -522,8 +539,9 @@ export function Conductor() {
   }, [workspace.recentMissions.data, missionFilter])
 
   const openDispatchFileInNewWindow = useCallback((relativePath: string) => {
-    window.open(getDispatchFileUrl(relativePath), '_blank', 'noopener,noreferrer')
-  }, [])
+    const projectPath = dispatchState?.options.project_path ?? workspace.projectFiles.data?.projectPath ?? null
+    window.open(getDispatchFileUrl(relativePath, projectPath), '_blank', 'noopener,noreferrer')
+  }, [dispatchState?.options.project_path, workspace.projectFiles.data?.projectPath])
 
   // Map task_id → run for quick lookup
   const taskNameById = useMemo(() => new Map(tasks.map((task) => [task.id, task.name] as const)), [tasks])
@@ -1151,6 +1169,39 @@ export function Conductor() {
                     <p className="text-sm text-[var(--theme-muted)]">No completed task outputs were reported in dispatch state.</p>
                   )}
                 </div>
+
+                {htmlPreviewFiles.length > 0 && (
+                  <div className="mt-5 space-y-4">
+                    <div>
+                      <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">HTML Preview</h3>
+                      <p className="mt-1 text-xs text-[var(--theme-muted-2)]">Rendered directly from the dispatch project output.</p>
+                    </div>
+                    {htmlPreviewFiles.map((file) => (
+                      <div
+                        key={`html-preview-${file.relativePath}`}
+                        className="overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-bg)]"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--theme-border)] px-4 py-3">
+                          <p className="truncate text-sm font-medium text-[var(--theme-text)]">{file.relativePath}</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => openDispatchFileInNewWindow(file.relativePath)}
+                            className="rounded-xl border-[var(--theme-border)] bg-[var(--theme-card)] text-[var(--theme-text)] hover:border-[var(--theme-accent)] hover:bg-[var(--theme-card2)]"
+                          >
+                            Open HTML
+                          </Button>
+                        </div>
+                        <iframe
+                          src={file.fileUrl}
+                          title={`Preview of ${file.relativePath}`}
+                          className="w-full rounded-2xl border-0 bg-white"
+                          style={{ height: '500px' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {showAllFiles && (
                   <div className="mt-5 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-bg)] p-4">

@@ -4,6 +4,16 @@ import { execFile } from "child_process";
 import { join, dirname } from "path";
 import { Tracker } from "../tracker";
 
+function slugify(value: string): string {
+  const slug = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+
+  return slug || "mission";
+}
+
 const STATE_PATH = join(
   process.env.HOME || "/Users/aurora",
   ".openclaw/workspace/data/dispatch-state.json"
@@ -41,6 +51,10 @@ export function createDispatchRouter(tracker?: Tracker): Router {
 
     const missionId = "mission-" + Date.now();
     const now = new Date().toISOString();
+    const resolvedProjectPath =
+      typeof projectPath === "string" && projectPath.trim().length > 0
+        ? projectPath.trim()
+        : `/tmp/dispatch-${slugify(mission)}-${Date.now()}`;
 
     const state = {
       mission_id: missionId,
@@ -50,7 +64,7 @@ export function createDispatchRouter(tracker?: Tracker): Router {
       updated_at: now,
       current_task_id: null,
       tasks: tasks || [],
-      options: { mode: mode || "autonomous", max_parallel: 1, project_path: projectPath || null },
+      options: { mode: mode || "autonomous", max_parallel: 1, project_path: resolvedProjectPath },
     };
 
     // Write dispatch state file
@@ -63,7 +77,7 @@ export function createDispatchRouter(tracker?: Tracker): Router {
       try {
         const project = tracker.createProject({
           name: mission.slice(0, 80),
-          path: projectPath || null,
+          path: resolvedProjectPath,
           spec: mission,
         });
         projectId = project.id;

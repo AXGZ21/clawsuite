@@ -13,6 +13,12 @@ type DispatchState = {
   };
 };
 
+function getRequestedProjectPath(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
+}
+
 function readDispatchProjectPath(): string | null {
   if (!existsSync(STATE_PATH)) {
     return null;
@@ -65,7 +71,8 @@ export function createDispatchFilesRouter(): Router {
       return;
     }
 
-    const projectPath = readDispatchProjectPath();
+    const projectPath =
+      getRequestedProjectPath(req.query.project) ?? readDispatchProjectPath();
     if (!projectPath) {
       res.status(404).json({ error: "Project path not found" });
       return;

@@ -36,9 +36,15 @@ export const Route = createFileRoute('/api/workspace/dispatch/files/$')({
         }
 
         try {
+          const requestUrl = new URL(request.url)
+          const projectPath = requestUrl.searchParams.get('project')
+          const query = projectPath
+            ? `?project=${encodeURIComponent(projectPath)}`
+            : ''
+
           return await forwardWorkspaceRequest({
             request,
-            path: `/dispatch/files/${encodeSplatPath(splat)}`,
+            path: `/dispatch/files/${encodeSplatPath(splat)}${query}`,
           })
         } catch (error) {
           return json(
