@@ -4,7 +4,6 @@ import {
   ArrowRight01Icon,
   CancelCircleHalfDotIcon,
   PlayIcon,
-  PlusSignIcon,
   Rocket01Icon,
   Search01Icon,
   TaskDone01Icon,
@@ -14,7 +13,6 @@ import { Button } from '@/components/ui/button'
 import { CodeBlock } from '@/components/prompt-kit/code-block'
 import { Markdown } from '@/components/prompt-kit/markdown'
 import { cn } from '@/lib/utils'
-import { TerminalWorkspace } from '@/components/terminal/terminal-workspace'
 import { AgentOutputPanel } from './components/agent-output-panel'
 import { useWorkspaceSse } from '@/hooks/use-workspace-sse'
 import { getWorkspaceCheckpointDiff } from '@/lib/workspace-checkpoints'
@@ -92,6 +90,32 @@ const QUICK_ACTIONS: Array<{
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatElapsedRange(startIso: string | null | undefined, endIso: string | null | undefined, now: number): string | null {
+  if (!startIso) return null
+  const endMs = endIso ? new Date(endIso).getTime() : now
+  const safeNow = Number.isFinite(endMs) ? endMs : now
+  return formatElapsedTime(startIso, safeNow)
+}
+
+function getFirstLine(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null
+  const line = value
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .find(Boolean)
+  return line ? line.slice(0, 140) : null
+}
+
+function getLastLine(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null
+  const lines = value
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+  if (lines.length === 0) return null
+  return lines[lines.length - 1]?.slice(0, 180) ?? null
+}
 
 function formatElapsedTime(startIso: string | null | undefined, now: number): string {
   if (!startIso) return '0s'
@@ -239,8 +263,7 @@ export function Conductor() {
   })
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [launchError, setLaunchError] = useState<string | null>(null)
-  const [terminalExpanded, setTerminalExpanded] = useState(false)
-  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false)
+  const [noActiveRunsSince, setNoActiveRunsSince] = useState<number | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [liveOutputTick, setLiveOutputTick] = useState(0)
   const [taskReplyDraft, setTaskReplyDraft] = useState('')
@@ -384,6 +407,10 @@ export function Conductor() {
     return starts.sort()[0]
   }, [tasks])
 
+  const activeTaskRuns = useMemo(
+    () => taskRuns.filter((run) => run.status === 'running' || run.status === 'active'),
+    [taskRuns],
+  )
   const pendingCheckpoints = useMemo(
     () => checkpoints.filter((c) => c.status === 'pending' || c.status === 'awaiting_review'),
     [checkpoints],
@@ -395,6 +422,18 @@ export function Conductor() {
       ),
     [taskRuns],
   )
+
+  useEffect(() => {
+    const status = missionStatus?.mission.status ?? null
+    const shouldTrackIdle = status === 'running' || status === 'ready'
+
+    if (!shouldTrackIdle || activeTaskRuns.length > 0) {
+      setNoActiveRunsSince(null)
+      return
+    }
+
+    setNoActiveRunsSince((current) => current ?? Date.now())
+  }, [activeTaskRuns.length, missionStatus?.mission.status])
   const visibleProjectFiles = useMemo(
     () =>
       [...(workspace.projectFiles.data?.files ?? [])]
@@ -487,6 +526,78 @@ export function Conductor() {
   }, [])
 
   // Map task_id → run for quick lookup
+  const taskNameById = useMemo(() => new Map(tasks.map((task) => [task.id, task.name] as const)), [tasks])
+  const activityFeed = useMemo(() => {
+    const events: Array<{
+      id: string
+      timestamp: string
+      icon: string
+      description: string
+      tone?: 'default' | 'success' | 'error' | 'checkpoint'
+      mono?: boolean
+    }> = []
+
+    for (const run of taskRuns) {
+      const taskName = run.task_name ?? taskNameById.get(run.task_id) ?? 'Task'
+      const agentName = run.agent_name ?? run.session_label ?? run.agent_id ?? 'Agent'
+      if (run.started_at) {
+        events.push({
+          id: `${run.id}-started`,
+          timestamp: run.started_at,
+          icon: '🔄',
+          description: `${taskName} started — ${agentName}`,
+        })
+      }
+      if (run.completed_at && (run.status === 'completed' || run.status === 'done')) {
+        events.push({
+          id: `${run.id}-completed`,
+          timestamp: run.completed_at,
+          icon: '✅',
+          description: `${taskName} completed`,
+          tone: 'success',
+        })
+      }
+      if (run.completed_at && run.status === 'failed') {
+        events.push({
+          id: `${run.id}-failed`,
+          timestamp: run.completed_at,
+          icon: '❌',
+          description: `${taskName} failed — ${getFirstLine(run.error) ?? 'Unknown error'}`,
+          tone: 'error',
+        })
+      }
+
+      const outputLine = getLastLine((liveOutputByRunId.get(run.id) ?? []).join('\n'))
+      if (outputLine) {
+        events.push({
+          id: `${run.id}-output`,
+          timestamp: run.completed_at ?? run.started_at ?? new Date(now).toISOString(),
+          icon: '💬',
+          description: outputLine,
+          tone: 'default',
+          mono: true,
+        })
+      }
+    }
+
+    for (const checkpoint of checkpoints) {
+      events.push({
+        id: `${checkpoint.id}-checkpoint`,
+        timestamp: checkpoint.created_at,
+        icon: '📋',
+        description: 'Checkpoint ready for review',
+        tone: 'checkpoint',
+      })
+    }
+
+    return events.sort((left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime())
+  }, [checkpoints, liveOutputByRunId, now, taskNameById, taskRuns])
+  const showNoAgentsWarning =
+    (missionStatusLabel === 'running' || missionStatusLabel === 'ready') &&
+    activeTaskRuns.length === 0 &&
+    noActiveRunsSince !== null &&
+    now - noActiveRunsSince >= 10_000
+
   const runByTaskId = useMemo(
     () => new Map(taskRuns.map((r) => [r.task_id, r] as const)),
     [taskRuns],
@@ -1154,10 +1265,10 @@ export function Conductor() {
 
   return (
     <div className="flex h-full min-h-full flex-col overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]" style={THEME_STYLE}>
-      <div className={cn('grid min-h-0 flex-1', rightSidebarCollapsed ? 'grid-cols-[220px_minmax(0,1fr)_28px]' : 'grid-cols-[220px_minmax(0,1fr)_340px]')}>
+      <div className={cn('grid min-h-0 flex-1', 'grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)_340px]')}>
 
         {/* ── Left sidebar: tasks ──────────────────────────────────────── */}
-        <aside className="flex min-h-0 flex-col border-r border-[var(--theme-border)] bg-[var(--theme-bg)]">
+        <aside className="hidden min-h-0 flex-col border-r border-[var(--theme-border)] bg-[var(--theme-bg)] md:flex">
           <div className="border-b border-[var(--theme-border)] px-4 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-muted-2)]">Tasks</p>
           </div>
@@ -1263,6 +1374,11 @@ export function Conductor() {
 
           {/* Center content — task detail or overview */}
           <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4">
+            {showNoAgentsWarning && (
+              <div className="mb-4 rounded-2xl border border-amber-400/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                ⚠️ No agents are running — models may be rate limited or unavailable. Try changing the agent in task settings or wait for availability.
+              </div>
+            )}
             {selectedTask ? (() => {
               const run = runByTaskId.get(selectedTask.id)
               const liveLines = run ? liveOutputByRunId.get(run.id) ?? [] : []
@@ -1416,12 +1532,20 @@ export function Conductor() {
                     const td = getTaskStatusDot(task.status)
                     const run = runByTaskId.get(task.id)
                     const liveLines = run ? liveOutputByRunId.get(run.id) ?? [] : []
+                    const statusText =
+                      task.status === 'pending' || task.status === 'ready'
+                        ? 'Queued'
+                        : task.status === 'completed' || task.status === 'done'
+                          ? `✅ Done${formatElapsedRange(task.started_at ?? run?.started_at, task.completed_at ?? run?.completed_at, now) ? ` · ${formatElapsedRange(task.started_at ?? run?.started_at, task.completed_at ?? run?.completed_at, now)}` : ''}`
+                          : task.status === 'failed'
+                            ? getFirstLine(run?.error) ?? 'Task failed'
+                            : td.label
                     return (
                       <button
                         key={task.id}
                         type="button"
                         onClick={() => setSelectedTaskId(task.id)}
-                        className="flex flex-col gap-1.5 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-3 text-left transition-colors hover:border-[var(--theme-accent)]"
+                        className="flex flex-col gap-2 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-3 text-left transition-colors hover:border-[var(--theme-accent)]"
                       >
                         <div className="flex items-center gap-3">
                           <span className={cn('size-2.5 shrink-0 rounded-full', td.dotClass)} />
@@ -1430,13 +1554,21 @@ export function Conductor() {
                         <div className="flex items-center gap-2 text-[10px] text-[var(--theme-muted-2)]">
                           <span>{run?.agent_name ?? task.agent_id ?? 'Unassigned'}</span>
                           <span>·</span>
-                          <span>{td.label}</span>
+                          <span className={cn(
+                            task.status === 'failed' && 'text-red-300',
+                            (task.status === 'pending' || task.status === 'ready') && 'text-[var(--theme-muted)]',
+                            (task.status === 'completed' || task.status === 'done') && 'text-emerald-300',
+                          )}>
+                            {statusText}
+                          </span>
                         </div>
-                        {liveLines.length > 0 && (
+                        {(task.status === 'running' || task.status === 'active' || liveLines.length > 0) && (
                           <div className="mt-1 w-full rounded-lg bg-[var(--theme-bg)] px-2 py-1.5 font-mono text-[10px] leading-relaxed text-emerald-400/80">
-                            {liveLines.slice(-3).map((line, li) => (
+                            {liveLines.length > 0 ? liveLines.slice(-3).map((line, li) => (
                               <div key={li} className="truncate">{line}</div>
-                            ))}
+                            )) : (
+                              <div className="truncate text-emerald-400/60">Awaiting live output…</div>
+                            )}
                           </div>
                         )}
                         {run?.session_id && (
@@ -1557,128 +1689,68 @@ export function Conductor() {
         </section>
 
         {/* ── Right sidebar ────────────────────────────────────────────── */}
-        <aside className="relative flex min-h-0 flex-col overflow-hidden border-l border-[var(--theme-border)] bg-[var(--theme-bg)]">
-          <button
-            type="button"
-            onClick={() => setRightSidebarCollapsed((c) => !c)}
-            className="absolute left-0 top-20 z-10 flex h-10 w-7 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-card)] text-[var(--theme-muted)] shadow-lg transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
-          >
-            <HugeiconsIcon icon={ArrowRight01Icon} size={14} strokeWidth={1.7} className={cn('transition-transform', rightSidebarCollapsed ? 'rotate-180' : '')} />
-          </button>
-          {rightSidebarCollapsed ? (
-            <div className="flex h-full items-start justify-center pt-36">
-              <span className="-rotate-90 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--theme-muted-2)]">Insights</span>
-            </div>
-          ) : (
-            <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-5">
-              {/* Progress */}
-              <section className="space-y-3">
-                <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Progress</h2>
-                <div className="rounded-2xl bg-[var(--theme-card)] px-3 py-3">
-                  <div className="mb-2 flex items-center justify-between text-sm">
-                    <span className="text-[var(--theme-muted)]">Tasks</span>
-                    <span className="font-medium text-[var(--theme-text)]">{completedCount}/{totalCount}</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-[var(--theme-card2)]">
-                    <div className="h-full rounded-full bg-emerald-400 transition-all" style={{ width: `${progress}%` }} />
-                  </div>
+        <aside className="min-h-0 border-t border-[var(--theme-border)] bg-[var(--theme-bg)] md:border-l md:border-t-0">
+          <div className="flex min-h-0 h-full flex-col gap-5 overflow-y-auto px-4 py-5">
+            <section className="space-y-3">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Progress</h2>
+              <div className="rounded-2xl bg-[var(--theme-card)] px-3 py-3">
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="text-[var(--theme-muted)]">Tasks</span>
+                  <span className="font-medium text-[var(--theme-text)]">{completedCount}/{totalCount}</span>
                 </div>
-              </section>
-
-              {/* Task list (compact) */}
-              <section className="space-y-3">
-                <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Task Status</h2>
-                <div className="space-y-2">
-                  {tasks.slice(0, 6).map((task) => {
-                    const td = getTaskStatusDot(task.status)
-                    return (
-                      <div key={task.id} className="flex items-center gap-2 rounded-2xl bg-[var(--theme-card)] px-3 py-2.5">
-                        <span className={cn('size-2 shrink-0 rounded-full', td.dotClass)} />
-                        <span className="min-w-0 flex-1 truncate text-sm text-[var(--theme-text)]">{task.name}</span>
-                        <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-[var(--theme-muted-2)]">{td.label}</span>
-                      </div>
-                    )
-                  })}
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--theme-card2)]">
+                  <div className="h-full rounded-full bg-emerald-400 transition-all" style={{ width: `${progress}%` }} />
                 </div>
-              </section>
+              </div>
+            </section>
 
-              {/* Agents */}
-              {runningAgents.length > 0 && (
-                <section className="space-y-3">
-                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Active Agents</h2>
-                  <div className="space-y-2">
-                    {runningAgents.map((agent) => (
-                      <div key={agent} className="flex items-center gap-2 rounded-2xl bg-[var(--theme-card)] px-3 py-2.5">
-                        <span className="relative flex size-2.5">
-                          <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/60" />
-                          <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400" />
-                        </span>
-                        <span className="text-sm text-[var(--theme-text)]">{agent}</span>
+            <section className="min-h-0 flex-1 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Live Activity</h2>
+                <span className="text-[10px] text-[var(--theme-muted-2)]">{activityFeed.length} events</span>
+              </div>
+              <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1 md:max-h-none">
+                {activityFeed.map((event) => (
+                  <div
+                    key={event.id}
+                    className={cn(
+                      'rounded-2xl border px-3 py-3',
+                      event.tone === 'error'
+                        ? 'border-red-500/25 bg-red-500/10'
+                        : event.tone === 'success'
+                          ? 'border-emerald-500/20 bg-emerald-500/10'
+                          : event.tone === 'checkpoint'
+                            ? 'border-amber-500/20 bg-amber-500/10'
+                            : 'border-[var(--theme-border)] bg-[var(--theme-card)]',
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-sm">{event.icon}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] text-[var(--theme-muted-2)]">
+                          {new Date(event.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
+                        </p>
+                        <p className={cn(
+                          'mt-1 text-sm text-[var(--theme-text)]',
+                          event.mono && 'font-mono text-[12px]',
+                        )}>
+                          {event.description}
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Checkpoints count */}
-              <section className="space-y-3">
-                <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Checkpoints</h2>
-                <div className="rounded-2xl bg-[var(--theme-card)] px-3 py-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-[var(--theme-muted)]">Total</span>
-                    <span className="font-medium text-[var(--theme-text)]">{checkpoints.length}</span>
-                  </div>
-                  {pendingCheckpoints.length > 0 && (
-                    <div className="mt-1 flex items-center justify-between text-sm">
-                      <span className="text-amber-400">Pending review</span>
-                      <span className="font-medium text-amber-400">{pendingCheckpoints.length}</span>
                     </div>
-                  )}
-                </div>
-              </section>
-
-              {/* Mission controls */}
-              <section className="space-y-3">
-                <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Controls</h2>
-                <button
-                  type="button"
-                  onClick={handleNewMission}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-3 py-3 text-sm text-[var(--theme-text)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
-                >
-                  <HugeiconsIcon icon={PlusSignIcon} size={16} strokeWidth={1.7} />
-                  New Mission
-                </button>
-              </section>
-            </div>
-          )}
+                  </div>
+                ))}
+                {activityFeed.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-6 text-sm text-[var(--theme-muted)]">
+                    Waiting for activity...
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
         </aside>
       </div>
 
-      {/* ── Terminal workspace ────────────────────────────────────────── */}
-      <section className="border-t border-[var(--theme-border)] bg-[var(--theme-card)]">
-        <button
-          type="button"
-          onClick={() => setTerminalExpanded((c) => !c)}
-          className="flex w-full items-center justify-between px-4 py-2 text-left"
-        >
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Terminal Workspace</p>
-            <p className="text-xs text-[var(--theme-muted-2)]">{terminalExpanded ? 'Collapse terminal' : 'Expand terminal'}</p>
-          </div>
-          <HugeiconsIcon icon={terminalExpanded ? ArrowRight01Icon : PlusSignIcon} size={16} strokeWidth={1.7} className={cn('transition-transform', terminalExpanded && 'rotate-90')} />
-        </button>
-        <div className={cn('overflow-hidden transition-[max-height] duration-200', terminalExpanded ? 'max-h-[340px]' : 'max-h-0')}>
-          <div className="h-[320px]">
-            <TerminalWorkspace
-              mode="panel"
-              panelVisible={terminalExpanded}
-              onMinimizePanel={() => setTerminalExpanded(false)}
-              onMaximizePanel={() => setTerminalExpanded(true)}
-              onClosePanel={() => setTerminalExpanded(false)}
-            />
-          </div>
-        </div>
-      </section>
     </div>
   )
 }
