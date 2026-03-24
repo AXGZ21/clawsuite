@@ -19,6 +19,19 @@ type HistoryResponse = {
 
 type MissionPhase = 'idle' | 'decomposing' | 'running' | 'complete'
 
+const ACTIVE_MISSION_STORAGE_KEY = 'conductor:active-mission'
+
+type PersistedMission = {
+  goal: string
+  phase: MissionPhase
+  missionStartedAt: string | null
+  workerKeys: string[]
+  workerLabels: string[]
+  streamText: string
+  planText: string
+  completedAt: string | null
+}
+
 type StreamEvent =
   | { type: 'assistant'; text: string }
   | { type: 'thinking'; text: string }
@@ -62,6 +75,56 @@ function toIso(value: unknown): string | null {
     return new Date(value).toISOString()
   }
   return null
+}
+
+function loadPersistedMission(): PersistedMission | null {
+  try {
+    const raw = globalThis.localStorage?.getItem(ACTIVE_MISSION_STORAGE_KEY)
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    const goal = typeof parsed.goal === 'string' ? parsed.goal : null
+    const phase = parsed.phase
+    const streamText = typeof parsed.streamText === 'string' ? parsed.streamText : null
+    const planText = typeof parsed.planText === 'string' ? parsed.planText : null
+    const workerKeys = Array.isArray(parsed.workerKeys) ? parsed.workerKeys.filter((value): value is string => typeof value === 'string') : null
+    const workerLabels = Array.isArray(parsed.workerLabels) ? parsed.workerLabels.filter((value): value is string => typeof value === 'string') : null
+    const missionStartedAt =
+      parsed.missionStartedAt === null || parsed.missionStartedAt === undefined ? null : toIso(parsed.missionStartedAt)
+    const completedAt = parsed.completedAt === null || parsed.completedAt === undefined ? null : toIso(parsed.completedAt)
+
+    if (
+      !goal ||
+      (phase !== 'decomposing' && phase !== 'running' && phase !== 'complete') ||
+      streamText === null ||
+      planText === null ||
+      !workerKeys ||
+      !workerLabels
+    ) {
+      return null
+    }
+
+    return {
+      goal,
+      phase,
+      missionStartedAt,
+      workerKeys,
+      workerLabels,
+      streamText,
+      planText,
+      completedAt,
+    }
+  } catch {
+    return null
+  }
+}
+
+function persistMission(state: PersistedMission): void {
+  try {
+    globalThis.localStorage?.setItem(ACTIVE_MISSION_STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // Ignore persistence failures.
+  }
 }
 
 function readContextTokens(session: GatewaySession): number {
@@ -255,18 +318,19 @@ async function readSseStream(response: Response, onEvent: (event: StreamEvent) =
 }
 
 export function useConductorGateway() {
-  const [phase, setPhase] = useState<MissionPhase>('idle')
-  const [goal, setGoal] = useState('')
-  const [streamText, setStreamText] = useState('')
-  const [planText, setPlanText] = useState('')
+  const [initialMission] = useState<PersistedMission | null>(() => loadPersistedMission())
+  const [phase, setPhase] = useState<MissionPhase>(() => initialMission?.phase ?? 'idle')
+  const [goal, setGoal] = useState(() => initialMission?.goal ?? '')
+  const [streamText, setStreamText] = useState(() => initialMission?.streamText ?? '')
+  const [planText, setPlanText] = useState(() => initialMission?.planText ?? '')
   const [streamEvents, setStreamEvents] = useState<StreamEvent[]>([])
-  const [missionStartedAt, setMissionStartedAt] = useState<string | null>(null)
-  const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const [missionStartedAt, setMissionStartedAt] = useState<string | null>(() => initialMission?.missionStartedAt ?? null)
+  const [completedAt, setCompletedAt] = useState<string | null>(() => initialMission?.completedAt ?? null)
   const [streamError, setStreamError] = useState<string | null>(null)
-  const [missionWorkerKeys, setMissionWorkerKeys] = useState<Set<string>>(new Set())
-  const [missionWorkerLabels, setMissionWorkerLabels] = useState<Set<string>>(new Set())
+  const [missionWorkerKeys, setMissionWorkerKeys] = useState<Set<string>>(() => new Set(initialMission?.workerKeys ?? []))
+  const [missionWorkerLabels, setMissionWorkerLabels] = useState<Set<string>>(() => new Set(initialMission?.workerLabels ?? []))
   const [workerOutputs, setWorkerOutputs] = useState<Record<string, string>>({})
-  const doneRef = useRef(false)
+  const doneRef = useRef(initialMission?.phase === 'complete')
   const seenToolCallRef = useRef(false)
 
   const sessionsQuery = useQuery({
@@ -420,6 +484,26 @@ export function useConductorGateway() {
     }
   }, [phase, workers])
 
+  useEffect(() => {
+    if (phase === 'idle') {
+      try {
+        localStorage.removeItem(ACTIVE_MISSION_STORAGE_KEY)
+      } catch {}
+      return
+    }
+
+    persistMission({
+      goal,
+      phase,
+      missionStartedAt,
+      workerKeys: [...missionWorkerKeys],
+      workerLabels: [...missionWorkerLabels],
+      streamText: streamText.slice(0, 10_000),
+      planText: planText.slice(0, 10_000),
+      completedAt,
+    })
+  }, [phase, goal, missionStartedAt, completedAt, missionWorkerKeys, missionWorkerLabels, streamText, planText])
+
   const sendMission = useMutation({
     mutationFn: async (nextGoal: string) => {
       const trimmed = nextGoal.trim()
@@ -507,6 +591,9 @@ export function useConductorGateway() {
 
   const resetMission = () => {
     doneRef.current = false
+    try {
+      localStorage.removeItem(ACTIVE_MISSION_STORAGE_KEY)
+    } catch {}
     setPhase('idle')
     setGoal('')
     setStreamText('')
