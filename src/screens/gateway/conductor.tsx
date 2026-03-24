@@ -194,7 +194,7 @@ export function Conductor() {
   const conductor = useConductorGateway()
   const [goalDraft, setGoalDraft] = useState('')
   const [selectedAction, setSelectedAction] = useState<QuickActionId>('build')
-  const [activityFilter, setActivityFilter] = useState<'all' | 'conductor' | 'completed' | 'failed'>('all')
+  const [activityFilter, setActivityFilter] = useState<'all' | 'conductor' | 'running' | 'completed' | 'failed'>('all')
   const [activityPage, setActivityPage] = useState(0)
   const [now, setNow] = useState(() => Date.now())
 
@@ -258,7 +258,9 @@ export function Conductor() {
     const sessions = conductor.recentSessions
     if (activityFilter === 'all') return sessions
     if (activityFilter === 'conductor') return sessions.filter((s) => (s.label as string)?.startsWith('worker-'))
-    return sessions.filter((s) => deriveSessionStatus(s as GatewaySession) === activityFilter)
+    if (activityFilter === 'running') return sessions.filter((s) => deriveSessionStatus(s as GatewaySession) === 'running')
+    if (activityFilter === 'completed') return sessions.filter((s) => deriveSessionStatus(s as GatewaySession) === 'completed')
+    return sessions.filter((s) => deriveSessionStatus(s as GatewaySession) === 'failed')
   })()
   const totalPages = Math.max(1, Math.ceil(filteredSessions.length / ACTIVITY_PAGE_SIZE))
   const safeActivityPage = Math.min(activityPage, totalPages - 1)
@@ -368,7 +370,7 @@ export function Conductor() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  {(['all', 'conductor', 'completed', 'failed'] as const).map((filter) => (
+                  {(['all', 'conductor', 'running', 'completed', 'failed'] as const).map((filter) => (
                     <button
                       key={filter}
                       type="button"
