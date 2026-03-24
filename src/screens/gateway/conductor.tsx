@@ -563,6 +563,33 @@ export function Conductor() {
               </div>
             </div>
 
+            {completePhaseProjectPath && (
+              <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Output Preview</p>
+                    <p className="mt-1 text-xs text-[var(--theme-muted-2)]">{completePhaseProjectPath}/index.html</p>
+                  </div>
+                  <a
+                    href={`/api/preview-file?path=${encodeURIComponent(`${completePhaseProjectPath}/index.html`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card2)] px-3 py-1.5 text-xs font-medium text-[var(--theme-text)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)]"
+                  >
+                    Open in new tab ↗
+                  </a>
+                </div>
+                <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-white">
+                  <iframe
+                    src={`/api/preview-file?path=${encodeURIComponent(`${completePhaseProjectPath}/index.html`)}`}
+                    className="h-[400px] w-full"
+                    sandbox="allow-scripts"
+                    title="Mission output preview"
+                  />
+                </div>
+              </section>
+            )}
+
             <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -606,33 +633,6 @@ export function Conductor() {
                 </details>
               )}
             </section>
-
-            {completePhaseProjectPath && (
-              <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Output Preview</p>
-                    <p className="mt-1 text-xs text-[var(--theme-muted-2)]">{completePhaseProjectPath}/index.html</p>
-                  </div>
-                  <a
-                    href={`/api/preview-file?path=${encodeURIComponent(`${completePhaseProjectPath}/index.html`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card2)] px-3 py-1.5 text-xs font-medium text-[var(--theme-text)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)]"
-                  >
-                    Open in new tab ↗
-                  </a>
-                </div>
-                <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-white">
-                  <iframe
-                    src={`/api/preview-file?path=${encodeURIComponent(`${completePhaseProjectPath}/index.html`)}`}
-                    className="h-[400px] w-full"
-                    sandbox="allow-scripts"
-                    title="Mission output preview"
-                  />
-                </div>
-              </section>
-            )}
           </div>
         </main>
       </div>
