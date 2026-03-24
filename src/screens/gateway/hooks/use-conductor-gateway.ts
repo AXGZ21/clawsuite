@@ -394,6 +394,7 @@ export function useConductorGateway() {
   const [missionStartedAt, setMissionStartedAt] = useState<string | null>(() => initialMission?.missionStartedAt ?? null)
   const [completedAt, setCompletedAt] = useState<string | null>(() => initialMission?.completedAt ?? null)
   const [streamError, setStreamError] = useState<string | null>(null)
+  const [timeoutWarning, setTimeoutWarning] = useState(false)
   const [missionWorkerKeys, setMissionWorkerKeys] = useState<Set<string>>(() => new Set(initialMission?.workerKeys ?? []))
   const [missionWorkerLabels, setMissionWorkerLabels] = useState<Set<string>>(() => new Set(initialMission?.workerLabels ?? []))
   const [workerOutputs, setWorkerOutputs] = useState<Record<string, string>>({})
@@ -495,6 +496,24 @@ export function useConductorGateway() {
       setPhase('running')
     }
   }, [phase, workers.length])
+
+  useEffect(() => {
+    if (phase !== 'running' && phase !== 'decomposing') {
+      setTimeoutWarning(false)
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      if (workers.length === 0 && phase === 'running') {
+        setTimeoutWarning(true)
+      }
+      if (phase === 'decomposing' && !streamText) {
+        setTimeoutWarning(true)
+      }
+    }, 60_000)
+
+    return () => window.clearTimeout(timer)
+  }, [phase, workers.length, streamText])
 
   useEffect(() => {
     if (phase !== 'running') return
@@ -614,6 +633,7 @@ export function useConductorGateway() {
       const trimmed = nextGoal.trim()
       if (!trimmed) throw new Error('Mission goal required')
       doneRef.current = false
+      setTimeoutWarning(false)
       setGoal(trimmed)
       setStreamText('')
       setPlanText('')
@@ -706,6 +726,7 @@ export function useConductorGateway() {
     setPlanText('')
     setStreamEvents([])
     setStreamError(null)
+    setTimeoutWarning(false)
     setMissionStartedAt(null)
     setCompletedAt(null)
     setMissionWorkerKeys(new Set())
@@ -715,6 +736,14 @@ export function useConductorGateway() {
     seenToolCallRef.current = false
   }
 
+  const retryMission = async () => {
+    if (!goal) return
+    const currentGoal = goal
+    resetMission()
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    await sendMission.mutateAsync(currentGoal)
+  }
+
   return {
     phase,
     goal,
@@ -722,6 +751,7 @@ export function useConductorGateway() {
     planText,
     streamEvents,
     streamError,
+    timeoutWarning,
     missionStartedAt,
     completedAt,
     tasks,
@@ -733,6 +763,7 @@ export function useConductorGateway() {
     sendMission: sendMission.mutateAsync,
     isSending: sendMission.isPending,
     resetMission,
+    retryMission,
     refreshWorkers: sessionsQuery.refetch,
     isRefreshingWorkers: sessionsQuery.isFetching,
   }

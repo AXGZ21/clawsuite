@@ -592,6 +592,18 @@ export function Conductor() {
                   {conductor.streamError}
                 </div>
               )}
+              {conductor.timeoutWarning && (
+                <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-3">
+                  <p className="text-sm text-amber-200">⚠️ Planning is taking longer than expected...</p>
+                  <Button
+                    type="button"
+                    onClick={conductor.resetMission}
+                    className="rounded-xl bg-amber-500/20 px-4 text-amber-200 hover:bg-amber-500/30"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
               {conductor.tasks.length > 0 && (
                 <div className="mt-4 space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">
@@ -620,6 +632,33 @@ export function Conductor() {
       <div className="min-h-full bg-[var(--theme-bg)] text-[var(--theme-text)]" style={THEME_STYLE}>
         <main className="mx-auto flex max-w-[960px] flex-col px-6 py-12 pb-24">
           <div className="space-y-6">
+            {conductor.streamError && (
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-red-400">❌</span>
+                  <div>
+                    <p className="text-sm font-medium text-red-300">Mission failed</p>
+                    <p className="text-xs text-red-400">{conductor.streamError}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => void conductor.retryMission()}
+                    className="rounded-xl bg-red-500/20 px-4 text-red-200 hover:bg-red-500/30"
+                  >
+                    Retry Mission
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={conductor.resetMission}
+                    className="rounded-xl bg-[var(--theme-card)] px-4 text-[var(--theme-muted)] hover:bg-[var(--theme-card2)]"
+                  >
+                    New Mission
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6 shadow-[0_24px_80px_var(--theme-shadow)]">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -792,6 +831,30 @@ export function Conductor() {
               <div className="h-full rounded-full bg-[var(--theme-accent)] transition-[width] duration-300" style={{ width: `${missionProgress}%` }} />
             </div>
           </section>
+          {conductor.timeoutWarning && (
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-3">
+              <div className="flex items-center gap-3">
+                <span className="text-amber-400">⚠️</span>
+                <p className="text-sm text-amber-200">No worker activity detected for 60 seconds. The mission may be stalled.</p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={() => void conductor.retryMission()}
+                  className="rounded-xl bg-amber-500/20 px-4 text-amber-200 hover:bg-amber-500/30"
+                >
+                  Retry
+                </Button>
+                <Button
+                  type="button"
+                  onClick={conductor.resetMission}
+                  className="rounded-xl bg-[var(--theme-card)] px-4 text-[var(--theme-muted)] hover:bg-[var(--theme-card2)]"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
           <details
             className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6"
             open={!shouldCollapseLivePlanByDefault}
