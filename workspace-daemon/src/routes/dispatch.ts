@@ -42,7 +42,7 @@ ${taskLines}
 ## Execution — for EACH task in order:
 
 1. Mark task running:
-   curl -s -X PATCH http://localhost:3099/api/workspace/tasks/<DB_ID> -H 'Content-Type: application/json' -d '{"status":"running"}'
+   curl -s -X PATCH http://localhost:3002/api/workspace/tasks/<DB_ID> -H 'Content-Type: application/json' -d '{"status":"running"}'
 
 2. Spawn a worker using sessions_spawn:
    - task: clear build instructions (include project path + expected output file)
@@ -57,12 +57,12 @@ ${taskLines}
 4. Verify output exists (use exec to check files).
 
 5. Mark task completed:
-   curl -s -X PATCH http://localhost:3099/api/workspace/tasks/<DB_ID> -H 'Content-Type: application/json' -d '{"status":"completed"}'
+   curl -s -X PATCH http://localhost:3002/api/workspace/tasks/<DB_ID> -H 'Content-Type: application/json' -d '{"status":"completed"}'
 
 6. Continue to next task.
 
 ## After ALL tasks:
-curl -s -X PATCH http://localhost:3099/api/workspace/missions/${missionPatchId}/status -H 'Content-Type: application/json' -d '{"status":"completed"}'
+curl -s -X PATCH http://localhost:3002/api/workspace/missions/${missionPatchId}/status -H 'Content-Type: application/json' -d '{"status":"completed"}'
 
 ## Rules
 - Execute autonomously. Do NOT ask for user input.
