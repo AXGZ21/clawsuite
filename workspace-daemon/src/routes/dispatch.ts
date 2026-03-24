@@ -30,8 +30,60 @@ const STATE_PATH = join(
   ".openclaw/workspace/data/dispatch-state.json"
 );
 
-function fireDispatchTrigger(missionId: string, mission: string): void {
-  const message = `[dispatch] Mission started: ${missionId}. Goal: "${mission.slice(0, 100)}". Read data/dispatch-state.json and run the workspace-dispatch skill loop now.`;
+function buildOrchestratorPrompt(missionId: string, mission: string, tasks: any[], projectPath: string): string {
+  const taskList = tasks.map((t: any, i: number) => {
+    const id = t.id || `task-${String(i + 1).padStart(3, "0")}`;
+    return `- [${id}] ${t.title || t.name || "Task"} (type: ${t.type || "coding"})${t.description ? `\n  ${t.description}` : ""}`;
+  }).join("\n");
+
+  return `You are a mission orchestrator. Execute this mission end-to-end autonomously.
+
+## Mission
+ID: ${missionId}
+Goal: ${mission}
+Project Path: ${projectPath}
+
+## Tasks
+${taskList}
+
+## How to Execute
+
+For EACH task in order:
+
+1. **Update daemon**: Run \`exec\` to call:
+   curl -X PATCH http://localhost:3099/api/workspace/tasks/<TASK_ID> -H 'Content-Type: application/json' -d '{"status":"running"}'
+
+2. **Spawn a worker agent** using sessions_spawn:
+   - task: detailed instructions for building/researching
+   - model: "openai-codex/gpt-5.4" for coding, or appropriate model
+   - mode: "run"
+   - label: "worker-<task-id>"
+   - cwd: "${projectPath}"
+   - runTimeoutSeconds: 600
+
+3. **Call sessions_yield** and wait for the worker to complete.
+
+4. **Verify the output** — check files exist, run any validation.
+
+5. **Update daemon**: 
+   curl -X PATCH http://localhost:3099/api/workspace/tasks/<TASK_ID> -H 'Content-Type: application/json' -d '{"status":"completed"}'
+
+6. **Move to next task**.
+
+After ALL tasks complete:
+- Summarize what was built
+- The Conductor UI updates automatically via daemon SSE
+
+## Rules
+- Do NOT ask for user input. Execute everything autonomously.
+- Do NOT skip tasks. Execute each one.
+- If a worker fails, retry ONCE with error feedback, then mark failed.
+- Use exec + curl to update the daemon. The UI watches via SSE.
+- Work ONLY in the project path directory.`;
+}
+
+function fireDispatchTrigger(missionId: string, mission: string, tasks: any[] = [], projectPath: string = ""): void {
+  const orchestratorMessage = buildOrchestratorPrompt(missionId, mission, tasks, projectPath);
 
   // Use gateway hooks/agent endpoint to spawn an isolated agent session.
   // This creates an independent session that can use sessions_spawn — no chat session dependency.
@@ -47,28 +99,30 @@ function fireDispatchTrigger(missionId: string, mission: string): void {
     method: "POST",
     headers,
     body: JSON.stringify({
-      message,
+      message: orchestratorMessage,
       name: `mission-${missionId}`,
       deliver: false,
       wakeMode: "now",
+      timeoutSeconds: 600,
     }),
   })
     .then((res) => {
       if (res.ok) {
         return res.json().then((data: any) => {
-          console.log("[dispatch] Agent hook triggered for", missionId, "runId:", data?.runId);
+          console.log("[dispatch] Orchestrator spawned for", missionId, "runId:", data?.runId);
         });
       } else {
         throw new Error(`Hooks returned ${res.status}`);
       }
     })
     .catch((err: Error) => {
-      console.error("[dispatch] Failed to trigger agent hook:", err.message);
+      console.error("[dispatch] Failed to spawn orchestrator:", err.message);
       // Fallback: wake event (goes to agent:main:main)
+      const fallbackText = `[dispatch] Mission started: ${missionId}. Goal: "${mission.slice(0, 100)}". Read data/dispatch-state.json and run the workspace-dispatch skill loop now.`;
       fetch(`${gatewayUrl}/api/cron/wake`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: message, mode: "now" }),
+        body: JSON.stringify({ text: fallbackText, mode: "now" }),
       }).catch(() => {
         console.error("[dispatch] Wake fallback also failed for", missionId);
       });
@@ -145,8 +199,8 @@ export function createDispatchRouter(tracker?: Tracker): Router {
       }
     }
 
-    // Fire system event to trigger dispatch skill immediately
-    fireDispatchTrigger(missionId, mission);
+    // Spawn orchestrator agent via gateway hooks
+    fireDispatchTrigger(missionId, mission, tasks || [], resolvedProjectPath);
 
     res.json({ ok: true, mission_id: missionId, project_id: projectId });
   });
