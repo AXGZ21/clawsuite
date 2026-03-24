@@ -394,18 +394,17 @@ export function Conductor() {
             <div className="rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6 shadow-[0_24px_80px_var(--theme-shadow)]">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--theme-muted)]">Mission Complete</p>
-                  <h1 className="mt-1 text-3xl font-semibold tracking-tight">{conductor.goal}</h1>
-                  <p className="mt-2 text-sm text-[var(--theme-muted-2)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--theme-accent)]">Mission Complete</p>
+                  <h1 className="mt-2 text-xl font-semibold tracking-tight text-[var(--theme-text)] sm:text-2xl">{conductor.goal}</h1>
+                  <p className="mt-2 text-xs text-[var(--theme-muted-2)]">
                     {completedWorkers}/{Math.max(totalWorkers, completedWorkers)} workers finished · {formatElapsedTime(conductor.missionStartedAt, conductor.completedAt ? new Date(conductor.completedAt).getTime() : now)} total elapsed
                   </p>
                 </div>
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                    variant="outline"
                     onClick={conductor.resetMission}
-                    className="rounded-xl border-[var(--theme-border)] bg-[var(--theme-card)] text-[var(--theme-text)] hover:border-[var(--theme-accent)] hover:bg-[var(--theme-card2)]"
+                    className="rounded-xl bg-[var(--theme-accent)] px-5 text-white hover:bg-[var(--theme-accent-strong)]"
                   >
                     New Mission
                   </Button>
