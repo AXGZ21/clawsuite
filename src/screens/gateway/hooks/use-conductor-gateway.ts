@@ -319,7 +319,7 @@ export function useConductorGateway() {
           const key = readString(session.key) ?? ''
           const updatedAt = toIso(session.updatedAt ?? session.startedAt ?? session.createdAt)
           if (!updatedAt) return false
-          return (label.startsWith('worker-') || key.includes(':subagent:')) && new Date(updatedAt).getTime() >= cutoff
+          return label.startsWith('worker-') && new Date(updatedAt).getTime() >= cutoff
         })
         .sort((a, b) => {
           const updatedA = new Date(toIso(a.updatedAt ?? a.startedAt ?? a.createdAt) ?? 0).getTime()
