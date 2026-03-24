@@ -1,9 +1,15 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
+import { gatewayRpc } from '../../server/gateway'
 import { isAuthenticated } from '../../server/auth-middleware'
 import { requireJsonContentType } from '../../server/rate-limit'
+
+type SendResponse = {
+  runId?: string
+}
 
 let cachedSkill: string | null = null
 
@@ -51,25 +57,10 @@ function buildOrchestratorPrompt(goal: string, skill: string): string {
   ].join('\n')
 }
 
-function readGatewayConfig(): { url: string; token: string } {
-  // Read gateway URL and hooks token from openclaw.json
-  const configPaths = [
-    resolve(process.env.HOME ?? '~', '.openclaw/openclaw.json'),
-  ]
-  for (const p of configPaths) {
-    try {
-      const raw = readFileSync(p, 'utf-8')
-      // openclaw.json uses relaxed JSON (JS object syntax) — extract what we need with regex
-      const portMatch = raw.match(/port:\s*(\d+)/)
-      const port = portMatch ? portMatch[1] : '18789'
-      const tokenMatch = raw.match(/hooks:\s*\{[^}]*token:\s*['"]([^'"]+)['"]/)
-      const token = tokenMatch ? tokenMatch[1] : ''
-      return { url: `http://127.0.0.1:${port}`, token }
-    } catch {
-      continue
-    }
-  }
-  return { url: 'http://127.0.0.1:18789', token: '' }
+function looksLikeMethodMissingError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  const message = error.message.toLowerCase()
+  return message.includes('method') && (message.includes('not found') || message.includes('unknown'))
 }
 
 export const Route = createFileRoute('/api/conductor-spawn')({
@@ -92,34 +83,38 @@ export const Route = createFileRoute('/api/conductor-spawn')({
 
           const skill = loadDispatchSkill()
           const prompt = buildOrchestratorPrompt(goal, skill)
-          const { url: gatewayUrl, token: hooksToken } = readGatewayConfig()
 
-          // Use the gateway hooks endpoint to spawn an isolated agent session
-          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-          if (hooksToken) {
-            headers['Authorization'] = `Bearer ${hooksToken}`
+          // Send the orchestrator prompt to a dedicated session via gateway RPC
+          // Use a unique session key so it doesn't pollute any chat session
+          const sessionKey = `conductor:${Date.now()}`
+          const idempotencyKey = randomUUID()
+
+          let result: SendResponse
+          try {
+            result = await gatewayRpc<SendResponse>('sessions.send', {
+              sessionKey,
+              message: prompt,
+              lane: 'subagent',
+              deliver: false,
+              timeoutMs: 120_000,
+              idempotencyKey,
+            })
+          } catch (error) {
+            if (!looksLikeMethodMissingError(error)) throw error
+            // Fallback for older gateways
+            result = await gatewayRpc<SendResponse>('chat.send', {
+              sessionKey,
+              message: prompt,
+              deliver: false,
+              timeoutMs: 120_000,
+              idempotencyKey,
+            })
           }
-
-          const hookResponse = await fetch(`${gatewayUrl}/hooks`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ text: prompt }),
-          })
-
-          if (!hookResponse.ok) {
-            const errText = await hookResponse.text().catch(() => '')
-            return json(
-              { ok: false, error: `Gateway hooks returned ${hookResponse.status}: ${errText}` },
-              { status: 502 },
-            )
-          }
-
-          const hookResult = (await hookResponse.json().catch(() => ({}))) as Record<string, unknown>
 
           return json({
             ok: true,
-            sessionKey: hookResult.sessionKey ?? hookResult.key ?? null,
-            runId: hookResult.runId ?? null,
+            sessionKey,
+            runId: result.runId ?? null,
           })
         } catch (error) {
           return json(
