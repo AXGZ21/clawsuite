@@ -964,13 +964,13 @@ export function Conductor() {
               </div>
             </div>
 
-            {completePhaseProjectPath && (
+            {completePhaseProjectPath ? (
               <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6 shadow-[0_24px_80px_var(--theme-shadow)]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Output Preview</p>
                     <p className="mt-1 text-xs text-[var(--theme-muted-2)]">
-                      {completePhaseProjectPath ? completePhaseProjectPath.split('/').pop() || 'index.html' : 'index.html'}
+                      {completePhaseProjectPath.split('/').pop() || 'index.html'}
                     </p>
                   </div>
                   <a
@@ -991,7 +991,14 @@ export function Conductor() {
                   />
                 </div>
               </section>
-            )}
+            ) : Object.keys(conductor.workerOutputs).length === 0 && !conductor.streamError ? (
+              <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6 shadow-[0_24px_80px_var(--theme-shadow)]">
+                <div className="flex items-center gap-3 text-sm text-[var(--theme-muted)]">
+                  <div className="size-4 animate-spin rounded-full border-2 border-[var(--theme-border)] border-t-[var(--theme-accent)]" />
+                  Loading output preview…
+                </div>
+              </section>
+            ) : null}
 
             {conductor.tasks.length > 1 && completedTaskOutputs.length > 0 && (
               <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6 shadow-[0_24px_80px_var(--theme-shadow)]">
