@@ -19,7 +19,23 @@ type HistoryResponse = {
 
 type MissionPhase = 'idle' | 'decomposing' | 'running' | 'complete'
 
+export type ConductorSettings = {
+  orchestratorModel: string
+  workerModel: string
+  projectsDir: string
+  maxParallel: number
+  supervised: boolean
+}
+
 const ACTIVE_MISSION_STORAGE_KEY = 'conductor:active-mission'
+const CONDUCTOR_SETTINGS_STORAGE_KEY = 'conductor-settings'
+const DEFAULT_CONDUCTOR_SETTINGS: ConductorSettings = {
+  orchestratorModel: '',
+  workerModel: '',
+  projectsDir: '',
+  maxParallel: 1,
+  supervised: false,
+}
 
 type PersistedMission = {
   goal: string
@@ -75,6 +91,8 @@ export type MissionHistoryEntry = {
   outputPath?: string | null
   workerSummary?: string[]
   outputText?: string
+  streamText?: string
+  error?: string | null
 }
 
 const HISTORY_STORAGE_KEY = 'conductor:history'
@@ -210,6 +228,31 @@ function loadPersistedMission(): PersistedMission | null {
     }
   } catch {
     return null
+  }
+}
+
+function loadConductorSettings(): ConductorSettings {
+  try {
+    const raw = globalThis.localStorage?.getItem(CONDUCTOR_SETTINGS_STORAGE_KEY)
+    if (!raw) return DEFAULT_CONDUCTOR_SETTINGS
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    return {
+      orchestratorModel: typeof parsed.orchestratorModel === 'string' ? parsed.orchestratorModel : DEFAULT_CONDUCTOR_SETTINGS.orchestratorModel,
+      workerModel: typeof parsed.workerModel === 'string' ? parsed.workerModel : DEFAULT_CONDUCTOR_SETTINGS.workerModel,
+      projectsDir: typeof parsed.projectsDir === 'string' ? parsed.projectsDir : DEFAULT_CONDUCTOR_SETTINGS.projectsDir,
+      maxParallel: Math.min(5, Math.max(1, typeof parsed.maxParallel === 'number' && Number.isFinite(parsed.maxParallel) ? Math.round(parsed.maxParallel) : DEFAULT_CONDUCTOR_SETTINGS.maxParallel)),
+      supervised: typeof parsed.supervised === 'boolean' ? parsed.supervised : DEFAULT_CONDUCTOR_SETTINGS.supervised,
+    }
+  } catch {
+    return DEFAULT_CONDUCTOR_SETTINGS
+  }
+}
+
+function persistConductorSettings(settings: ConductorSettings): void {
+  try {
+    globalThis.localStorage?.setItem(CONDUCTOR_SETTINGS_STORAGE_KEY, JSON.stringify(settings))
+  } catch {
+    // Ignore persistence failures.
   }
 }
 
@@ -472,6 +515,7 @@ export function useConductorGateway() {
   const [tasks, setTasks] = useState<ConductorTask[]>(() => initialMission?.tasks ?? [])
   const [missionHistory, setMissionHistory] = useState<MissionHistoryEntry[]>(() => loadMissionHistory())
   const [selectedHistoryEntry, setSelectedHistoryEntry] = useState<MissionHistoryEntry | null>(null)
+  const [conductorSettings, setConductorSettings] = useState<ConductorSettings>(() => loadConductorSettings())
   const doneRef = useRef(initialMission?.phase === 'complete')
   const seenToolCallRef = useRef(false)
   const historySavedRef = useRef(false)
@@ -756,6 +800,8 @@ export function useConductorGateway() {
       outputPath,
       workerSummary: workerSummary.length > 0 ? workerSummary : undefined,
       outputText: outputText || undefined,
+      streamText: streamText ? streamText.slice(0, 5000) : undefined,
+      error: streamError ?? undefined,
     }
     appendMissionHistory(entry)
     setMissionHistory((current) => {
@@ -763,6 +809,10 @@ export function useConductorGateway() {
       return [entry, ...current].slice(0, MAX_HISTORY_ENTRIES)
     })
   }, [phase, goal, completedAt, missionStartedAt, workers, streamError, workerOutputs, tasks, streamText])
+
+  useEffect(() => {
+    persistConductorSettings(conductorSettings)
+  }, [conductorSettings])
 
   useEffect(() => {
     if (phase === 'idle') {
@@ -815,7 +865,7 @@ export function useConductorGateway() {
   }
 
   const sendMission = useMutation({
-    mutationFn: async (nextGoal: string) => {
+    mutationFn: async ({ nextGoal, settings }: { nextGoal: string; settings: ConductorSettings }) => {
       const trimmed = nextGoal.trim()
       if (!trimmed) throw new Error('Mission goal required')
       doneRef.current = false
@@ -842,7 +892,7 @@ export function useConductorGateway() {
       const response = await fetch('/api/conductor-spawn', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ goal: trimmed }),
+        body: JSON.stringify({ goal: trimmed, ...settings }),
       })
 
       if (!response.ok) {
@@ -904,7 +954,7 @@ export function useConductorGateway() {
     const currentGoal = goal
     resetMission()
     await new Promise((resolve) => setTimeout(resolve, 100))
-    await sendMission.mutateAsync(currentGoal)
+    await sendMission.mutateAsync({ nextGoal: currentGoal, settings: conductorSettings })
   }
 
   return {
@@ -927,7 +977,9 @@ export function useConductorGateway() {
     recentSessions: recentSessionsQuery.data ?? [],
     missionWorkerKeys,
     workerOutputs,
-    sendMission: sendMission.mutateAsync,
+    conductorSettings,
+    setConductorSettings,
+    sendMission: (nextGoal: string) => sendMission.mutateAsync({ nextGoal, settings: conductorSettings }),
     isSending: sendMission.isPending,
     resetMission,
     stopMission,

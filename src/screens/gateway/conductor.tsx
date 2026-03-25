@@ -5,6 +5,7 @@ import {
   PlayIcon,
   Rocket01Icon,
   Search01Icon,
+  Settings01Icon,
   TaskDone01Icon,
 } from '@hugeicons/core-free-icons'
 import { Button } from '@/components/ui/button'
@@ -285,6 +286,7 @@ export function Conductor() {
   const [activityFilter, setActivityFilter] = useState<'all' | 'completed' | 'failed'>('all')
   const [activityPage, setActivityPage] = useState(0)
   const [now, setNow] = useState(() => Date.now())
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
     if (conductor.phase === 'idle' || conductor.phase === 'complete') return
@@ -304,6 +306,10 @@ export function Conductor() {
     const trimmed = goalDraft.trim()
     if (!trimmed) return
     await conductor.sendMission(trimmed)
+  }
+
+  const updateSettings = (patch: Partial<typeof conductor.conductorSettings>) => {
+    conductor.setConductorSettings({ ...conductor.conductorSettings, ...patch })
   }
 
   const totalWorkers = conductor.workers.length
@@ -477,6 +483,15 @@ export function Conductor() {
                 </section>
               )}
 
+              {selectedHistoryEntry.streamText && !selectedHistoryEntry.outputText && (
+                <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6 shadow-[0_24px_80px_var(--theme-shadow)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Agent Summary</p>
+                  <div className="mt-4 max-h-[400px] overflow-auto rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-4 text-sm text-[var(--theme-text)]">
+                    <Markdown className="max-w-none text-sm text-[var(--theme-text)]">{selectedHistoryEntry.streamText}</Markdown>
+                  </div>
+                </section>
+              )}
+
               {selectedHistoryEntry.outputPath && (
                 <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6 shadow-[0_24px_80px_var(--theme-shadow)]">
                   <div className="flex items-center justify-between gap-3">
@@ -526,7 +541,15 @@ export function Conductor() {
       <div className="flex h-full min-h-full flex-col overflow-y-auto bg-[var(--theme-bg)] text-[var(--theme-text)]" style={THEME_STYLE}>
         <main className="mx-auto flex min-h-0 w-full max-w-[720px] flex-1 flex-col items-stretch justify-center px-6 py-8">
           <div className="w-full space-y-8">
-            <div className="space-y-3 text-center">
+            <div className="relative space-y-3 text-center">
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                className="absolute right-0 top-0 inline-flex items-center justify-center rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-2 text-[var(--theme-muted)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
+                aria-label="Open conductor settings"
+              >
+                <HugeiconsIcon icon={Settings01Icon} size={18} strokeWidth={1.7} />
+              </button>
               <div className="inline-flex items-center gap-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--theme-muted)]">
                 Conductor
                 <span className="size-2 rounded-full bg-emerald-400" />
@@ -706,6 +729,98 @@ export function Conductor() {
               </section>
             )}
           </div>
+
+          {settingsOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--theme-bg)_55%,transparent)] px-4 py-6 backdrop-blur-md"
+              onClick={() => setSettingsOpen(false)}
+            >
+              <div
+                className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-[var(--theme-border2)] bg-[var(--theme-card)] p-5 shadow-[0_24px_80px_var(--theme-shadow)] sm:p-6"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Mission Defaults</p>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--theme-text)]">Conductor settings</h2>
+                    <p className="mt-2 text-sm text-[var(--theme-muted-2)]">Set the models and defaults every new mission should inherit.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSettingsOpen(false)}
+                    className="inline-flex size-10 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card2)] text-lg text-[var(--theme-muted)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
+                    aria-label="Close settings"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-[var(--theme-text)]">Orchestrator Model</span>
+                    <input
+                      type="text"
+                      value={conductor.conductorSettings.orchestratorModel}
+                      onChange={(event) => updateSettings({ orchestratorModel: event.target.value })}
+                      placeholder="default (auto)"
+                      className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3 text-sm text-[var(--theme-text)] outline-none transition-colors placeholder:text-[var(--theme-muted-2)] focus:border-[var(--theme-accent)]"
+                    />
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-[var(--theme-text)]">Worker Model</span>
+                    <input
+                      type="text"
+                      value={conductor.conductorSettings.workerModel}
+                      onChange={(event) => updateSettings({ workerModel: event.target.value })}
+                      placeholder="default (auto)"
+                      className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3 text-sm text-[var(--theme-text)] outline-none transition-colors placeholder:text-[var(--theme-muted-2)] focus:border-[var(--theme-accent)]"
+                    />
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-[var(--theme-text)]">Project Directory</span>
+                    <input
+                      type="text"
+                      value={conductor.conductorSettings.projectsDir}
+                      onChange={(event) => updateSettings({ projectsDir: event.target.value })}
+                      placeholder="~/conductor-projects"
+                      className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3 text-sm text-[var(--theme-text)] outline-none transition-colors placeholder:text-[var(--theme-muted-2)] focus:border-[var(--theme-accent)]"
+                    />
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-[var(--theme-text)]">Max Parallel Workers</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={5}
+                      value={conductor.conductorSettings.maxParallel}
+                      onChange={(event) =>
+                        updateSettings({
+                          maxParallel: Math.min(5, Math.max(1, Number(event.target.value) || 1)),
+                        })
+                      }
+                      className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3 text-sm text-[var(--theme-text)] outline-none transition-colors focus:border-[var(--theme-accent)]"
+                    />
+                  </label>
+
+                  <label className="flex items-start gap-3 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-4">
+                    <input
+                      type="checkbox"
+                      checked={conductor.conductorSettings.supervised}
+                      onChange={(event) => updateSettings({ supervised: event.target.checked })}
+                      className="mt-1 size-4 rounded border-[var(--theme-border2)] accent-[var(--theme-accent)]"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-[var(--theme-text)]">Supervised Mode</span>
+                      <span className="mt-1 block text-sm text-[var(--theme-muted-2)]">Require approval before each task</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     )
