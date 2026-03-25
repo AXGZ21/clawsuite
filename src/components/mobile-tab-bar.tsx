@@ -1,7 +1,7 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
-  BotIcon,
+  Rocket01Icon,
   Chat01Icon,
   Home01Icon,
   PuzzleIcon,
@@ -43,7 +43,7 @@ const TABS: TabItem[] = [
   {
     id: 'conductor',
     label: 'Conductor',
-    icon: BotIcon,
+    icon: Rocket01Icon,
     to: '/conductor',
     match: (p) => p.startsWith('/conductor') || p.startsWith('/agent-swarm') || p.startsWith('/agents'),
   },

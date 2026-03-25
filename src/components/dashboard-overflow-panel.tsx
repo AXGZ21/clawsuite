@@ -4,12 +4,10 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import {
   ApiIcon,
   BrainIcon,
-  BotIcon,
   ChartLineData02Icon,
   Clock01Icon,
   ComputerTerminal01Icon,
   File01Icon,
-  GlobeIcon,
   Home01Icon,
   ListViewIcon,
   MessageMultiple01Icon,
@@ -36,7 +34,7 @@ const SYSTEM_ITEMS: Array<OverflowItem> = [
   { icon: BrainIcon, label: 'Memory', to: '/memory' },
   { icon: Task01Icon, label: 'Tasks', to: '/tasks' },
   { icon: ComputerTerminal01Icon, label: 'Terminal', to: '/terminal' },
-  { icon: GlobeIcon, label: 'Browser', to: '/browser' },
+
   { icon: Clock01Icon, label: 'Cron Jobs', to: '/cron' },
   { icon: ListViewIcon, label: 'Logs', to: '/logs' },
   { icon: ApiIcon, label: 'Debug', to: '/debug' },
@@ -44,9 +42,8 @@ const SYSTEM_ITEMS: Array<OverflowItem> = [
 
 const GATEWAY_ITEMS: Array<OverflowItem> = [
   { icon: MessageMultiple01Icon, label: 'Chat', to: '/chat' },
-  { icon: BotIcon, label: 'Conductor', to: '/conductor' },
+  { icon: Rocket01Icon, label: 'Conductor', to: '/conductor' },
   { icon: Home01Icon, label: 'Dashboard', to: '/dashboard' },
-  { icon: Rocket01Icon, label: 'Agent View', to: '/agents' },
   { icon: ServerStack01Icon, label: 'Channels', to: '/channels' },
   { icon: ChartLineData02Icon, label: 'Costs', to: '/costs' },
 ]
