@@ -1170,7 +1170,7 @@ export function Conductor() {
       .filter((session) => deriveSessionStatus(session as GatewaySession) === activityFilter)
   })()
   const activityItems: Array<MissionHistoryEntry | GatewaySession> = hasMissionHistory ? filteredHistory : filteredSessions
-  const ACTIVITY_PAGE_SIZE = 5
+  const ACTIVITY_PAGE_SIZE = 3
   const activityTotalPages = Math.max(1, Math.ceil(activityItems.length / ACTIVITY_PAGE_SIZE))
   const safeActivityPage = Math.min(activityPage, activityTotalPages - 1)
   const visibleActivityItems = activityItems.slice(safeActivityPage * ACTIVITY_PAGE_SIZE, (safeActivityPage + 1) * ACTIVITY_PAGE_SIZE)
@@ -1454,7 +1454,7 @@ export function Conductor() {
                   ))}
                 </div>
                 {visibleActivityItems.length > 0 ? (
-                  <div className="space-y-1.5">
+                  <div className="min-h-[140px] space-y-1.5">
                     {hasMissionHistory
                       ? visibleActivityItems.map((item) => {
                           const entry = item as MissionHistoryEntry
