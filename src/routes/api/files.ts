@@ -23,6 +23,7 @@ const WORKSPACE_ROOT = (
   process.env.OPENCLAW_WORKSPACE_DIR ||
   path.join(os.homedir(), '.openclaw', 'workspace')
 ).trim()
+const HOME_DIR = path.resolve(os.homedir())
 const TEMP_ROOT = path.resolve('/tmp')
 
 type FileEntry = {
@@ -53,11 +54,18 @@ function isWithinRoot(resolvedPath: string, root: string) {
 function ensureReadablePath(input: string) {
   const raw = input.trim()
   if (!raw) return WORKSPACE_ROOT
-  const resolved = path.isAbsolute(raw)
-    ? path.resolve(raw)
-    : path.resolve(WORKSPACE_ROOT, raw)
+  const expanded =
+    raw === '~'
+      ? HOME_DIR
+      : raw.startsWith('~/')
+        ? path.join(HOME_DIR, raw.slice(2))
+        : raw
+  const resolved = path.isAbsolute(expanded)
+    ? path.resolve(expanded)
+    : path.resolve(WORKSPACE_ROOT, expanded)
   if (
     isWithinRoot(resolved, WORKSPACE_ROOT) ||
+    isWithinRoot(resolved, HOME_DIR) ||
     isWithinRoot(resolved, TEMP_ROOT) ||
     /^\/(?:Users|home)\/[^/]+\/conductor-projects\//.test(resolved)
   ) {
@@ -74,6 +82,10 @@ function toRelative(resolvedPath: string) {
 function toClientPath(resolvedPath: string) {
   if (isWithinRoot(resolvedPath, WORKSPACE_ROOT)) {
     return toRelative(resolvedPath)
+  }
+  if (isWithinRoot(resolvedPath, HOME_DIR)) {
+    const relative = path.relative(HOME_DIR, resolvedPath).split(path.sep).filter(Boolean).join('/')
+    return relative ? `~/${relative}` : '~'
   }
   return resolvedPath
 }
@@ -320,6 +332,8 @@ export const Route = createFileRoute('/api/files')({
             root: toClientPath(resolvedPath),
             base: isWithinRoot(resolvedPath, WORKSPACE_ROOT)
               ? WORKSPACE_ROOT
+              : isWithinRoot(resolvedPath, HOME_DIR)
+                ? HOME_DIR
               : TEMP_ROOT,
             entries: tree,
           })

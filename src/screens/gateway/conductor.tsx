@@ -34,6 +34,19 @@ type MissionCostWorker = {
   personaName: string
 }
 
+type AvailableModel = {
+  id?: string
+  provider?: string
+  name?: string
+}
+
+type FileBrowserEntry = {
+  name: string
+  path: string
+  type: 'file' | 'folder'
+  children?: Array<FileBrowserEntry>
+}
+
 const THEME_STYLE: CSSProperties = {
   ['--theme-bg' as string]: 'var(--color-surface)',
   ['--theme-card' as string]: 'var(--color-primary-50)',
@@ -465,6 +478,230 @@ function getShortModelName(model: string | null | undefined): string {
   return parts[parts.length - 1] || model
 }
 
+function getModelDisplayName(model: AvailableModel | undefined, modelId: string | null | undefined): string {
+  if (!modelId) return 'Default (auto)'
+  return model?.name?.trim() || model?.id?.trim() || modelId
+}
+
+function getProviderLabel(provider: string | null | undefined): string {
+  const raw = provider?.trim()
+  if (!raw) return 'Unknown'
+  return raw
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ')
+}
+
+function groupModelsByProvider(models: AvailableModel[]) {
+  const groups = new Map<string, AvailableModel[]>()
+
+  for (const model of models) {
+    const provider = getProviderLabel(model.provider)
+    const existing = groups.get(provider)
+    if (existing) {
+      existing.push(model)
+    } else {
+      groups.set(provider, [model])
+    }
+  }
+
+  return [...groups.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([provider, providerModels]) => ({
+      provider,
+      models: [...providerModels].sort((a, b) =>
+        getModelDisplayName(a, a.id).localeCompare(getModelDisplayName(b, b.id)),
+      ),
+    }))
+}
+
+function getDirectoryPathSegments(pathValue: string): string[] {
+  const normalized = pathValue.trim()
+  if (!normalized) return ['~']
+  if (normalized === '~') return ['~']
+  if (normalized.startsWith('~/')) {
+    return ['~', ...normalized.slice(2).split('/').filter(Boolean)]
+  }
+  if (normalized === '/') return ['/']
+  if (normalized.startsWith('/')) {
+    return ['/', ...normalized.slice(1).split('/').filter(Boolean)]
+  }
+  return normalized.split('/').filter(Boolean)
+}
+
+function buildDirectoryPathFromSegments(segments: string[]): string {
+  if (segments.length === 0) return '~'
+  if (segments[0] === '~') {
+    return segments.length === 1 ? '~' : `~/${segments.slice(1).join('/')}`
+  }
+  if (segments[0] === '/') {
+    return segments.length === 1 ? '/' : `/${segments.slice(1).join('/')}`
+  }
+  return segments.join('/')
+}
+
+function getParentDirectory(pathValue: string): string {
+  const segments = getDirectoryPathSegments(pathValue)
+  if (segments.length <= 1) return pathValue.startsWith('/') ? '/' : '~'
+  return buildDirectoryPathFromSegments(segments.slice(0, -1))
+}
+
+function getDirectorySuggestions() {
+  return ['~/conductor-projects', '~/Projects', '/tmp', '~/Desktop']
+}
+
+function ModelSelectorDropdown({
+  label,
+  value,
+  onChange,
+  models,
+  disabled = false,
+}: {
+  label: string
+  value: string
+  onChange: (nextValue: string) => void
+  models: AvailableModel[]
+  disabled?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!containerRef.current) return
+      if (containerRef.current.contains(event.target as Node)) return
+      setOpen(false)
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [open])
+
+  const selectedModel = models.find((model) => (model.id ?? '') === value)
+  const groupedModels = useMemo(() => groupModelsByProvider(models), [models])
+
+  return (
+    <div className="space-y-2">
+      <span className="text-sm font-medium text-[var(--theme-text)]">{label}</span>
+      <div className="relative" ref={containerRef}>
+        <button
+          type="button"
+          onClick={() => {
+            if (disabled) return
+            setOpen((current) => !current)
+          }}
+          className={cn(
+            'inline-flex min-h-[3rem] w-full items-center justify-between gap-3 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3 text-left text-sm text-[var(--theme-text)] shadow-[0_8px_24px_color-mix(in_srgb,var(--theme-shadow)_18%,transparent)] transition-colors',
+            disabled
+              ? 'cursor-not-allowed opacity-60'
+              : 'hover:border-[var(--theme-accent)] focus:border-[var(--theme-accent)]',
+          )}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          disabled={disabled}
+        >
+          <span className="inline-flex min-w-0 items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-card2)] px-3 py-1 text-xs font-medium text-[var(--theme-text)]">
+              <span
+                className={cn(
+                  'size-2 rounded-full',
+                  value ? 'bg-[var(--theme-accent)]' : 'bg-[var(--theme-border2)]',
+                )}
+              />
+              <span className="truncate">{getModelDisplayName(selectedModel, value)}</span>
+            </span>
+          </span>
+          <HugeiconsIcon
+            icon={ArrowDown01Icon}
+            size={16}
+            strokeWidth={1.8}
+            className={cn('shrink-0 text-[var(--theme-muted)] transition-transform', open && 'rotate-180')}
+          />
+        </button>
+
+        {open ? (
+          <div className="absolute left-0 top-[calc(100%+0.5rem)] z-[80] w-full overflow-hidden rounded-2xl border border-[var(--theme-border2)] bg-[var(--theme-card)] shadow-[0_24px_80px_var(--theme-shadow)]">
+            <div className="max-h-80 overflow-y-auto p-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange('')
+                  setOpen(false)
+                }}
+                className={cn(
+                  'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors',
+                  !value
+                    ? 'bg-[var(--theme-accent-soft)] text-[var(--theme-text)]'
+                    : 'text-[var(--theme-text)] hover:bg-[var(--theme-bg)]',
+                )}
+                role="option"
+                aria-selected={!value}
+              >
+                <span
+                  className={cn(
+                    'size-2 rounded-full',
+                    !value ? 'bg-[var(--theme-accent)]' : 'bg-[var(--theme-border2)]',
+                  )}
+                />
+                <span className="min-w-0 flex-1 truncate">Default (auto)</span>
+                <span className="rounded-full border border-[var(--theme-border)] bg-[var(--theme-card2)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--theme-muted)]">
+                  Auto
+                </span>
+              </button>
+
+              {groupedModels.map((group) => (
+                <div key={group.provider} className="mt-2 first:mt-3">
+                  <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">
+                    {group.provider}
+                  </div>
+                  <div className="space-y-1">
+                    {group.models.map((model) => {
+                      const modelId = model.id ?? ''
+                      const active = modelId === value
+                      return (
+                        <button
+                          key={`${group.provider}-${modelId}`}
+                          type="button"
+                          onClick={() => {
+                            onChange(modelId)
+                            setOpen(false)
+                          }}
+                          className={cn(
+                            'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors',
+                            active
+                              ? 'bg-[var(--theme-accent-soft)] text-[var(--theme-text)]'
+                              : 'text-[var(--theme-text)] hover:bg-[var(--theme-bg)]',
+                          )}
+                          role="option"
+                          aria-selected={active}
+                        >
+                          <span
+                            className={cn(
+                              'size-2 rounded-full',
+                              active ? 'bg-[var(--theme-accent)]' : 'bg-[var(--theme-border2)]',
+                            )}
+                          />
+                          <span className="min-w-0 flex-1 truncate">{getModelDisplayName(model, modelId)}</span>
+                          <span className="rounded-full border border-[var(--theme-border)] bg-[var(--theme-card2)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--theme-muted)]">
+                            {group.provider}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 function extractMessageText(message: HistoryMessage | undefined): string {
   if (!message) return ''
   if (typeof message.content === 'string') return message.content
@@ -549,6 +786,11 @@ export function Conductor() {
   const [historyCostExpanded, setHistoryCostExpanded] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [directoryBrowserOpen, setDirectoryBrowserOpen] = useState(false)
+  const [directoryBrowserPath, setDirectoryBrowserPath] = useState('~')
+  const [directoryBrowserEntries, setDirectoryBrowserEntries] = useState<FileBrowserEntry[]>([])
+  const [directoryBrowserLoading, setDirectoryBrowserLoading] = useState(false)
+  const [directoryBrowserError, setDirectoryBrowserError] = useState<string | null>(null)
   const modelsQuery = useQuery({
     queryKey: ['conductor', 'models'],
     queryFn: async () => {
@@ -560,6 +802,50 @@ export function Conductor() {
     staleTime: 60_000,
   })
   const availableModels = modelsQuery.data ?? []
+
+  useEffect(() => {
+    if (!directoryBrowserOpen) return
+
+    let cancelled = false
+
+    const loadDirectory = async () => {
+      setDirectoryBrowserLoading(true)
+      setDirectoryBrowserError(null)
+
+      try {
+        const res = await fetch(`/api/files?path=${encodeURIComponent(directoryBrowserPath)}`)
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string
+          root?: string
+          entries?: Array<FileBrowserEntry>
+        }
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to load directory')
+        }
+
+        if (cancelled) return
+        setDirectoryBrowserPath(typeof data.root === 'string' && data.root.trim() ? data.root : directoryBrowserPath)
+        setDirectoryBrowserEntries(
+          Array.isArray(data.entries) ? data.entries.filter((entry) => entry?.type === 'folder') : [],
+        )
+      } catch (error) {
+        if (cancelled) return
+        setDirectoryBrowserEntries([])
+        setDirectoryBrowserError(error instanceof Error ? error.message : 'Failed to load directory')
+      } finally {
+        if (!cancelled) {
+          setDirectoryBrowserLoading(false)
+        }
+      }
+    }
+
+    void loadDirectory()
+
+    return () => {
+      cancelled = true
+    }
+  }, [directoryBrowserOpen, directoryBrowserPath])
 
   useEffect(() => {
     if (conductor.phase === 'idle' || conductor.phase === 'complete' || conductor.isPaused) return
@@ -632,6 +918,27 @@ export function Conductor() {
   const updateSettings = (patch: Partial<typeof conductor.conductorSettings>) => {
     conductor.setConductorSettings({ ...conductor.conductorSettings, ...patch })
   }
+
+  const openDirectoryBrowser = () => {
+    setDirectoryBrowserPath(conductor.conductorSettings.projectsDir.trim() || '~')
+    setDirectoryBrowserEntries([])
+    setDirectoryBrowserError(null)
+    setDirectoryBrowserOpen(true)
+  }
+
+  const closeDirectoryBrowser = () => {
+    setDirectoryBrowserOpen(false)
+    setDirectoryBrowserLoading(false)
+    setDirectoryBrowserError(null)
+  }
+
+  const directoryBreadcrumbs = useMemo(() => {
+    const segments = getDirectoryPathSegments(directoryBrowserPath)
+    return segments.map((segment, index) => ({
+      label: segment === '/' ? 'Root' : segment,
+      path: buildDirectoryPathFromSegments(segments.slice(0, index + 1)),
+    }))
+  }, [directoryBrowserPath])
 
   const totalWorkers = conductor.workers.length
   const completedWorkers = conductor.workers.filter((worker) => worker.status === 'complete').length
@@ -1026,7 +1333,7 @@ export function Conductor() {
         <main className="mx-auto flex min-h-0 w-full max-w-[720px] flex-1 flex-col items-stretch justify-center px-4 py-4 pb-[calc(var(--tabbar-h,80px)+1rem)] md:px-6 md:py-8">
           <div className="w-full space-y-8">
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="relative flex items-center justify-center">
                 <div className="inline-flex items-center gap-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--theme-muted)]">
                   Conductor
                   <span className="size-2 rounded-full bg-emerald-400" />
@@ -1034,7 +1341,7 @@ export function Conductor() {
                 <button
                   type="button"
                   onClick={() => setSettingsOpen(true)}
-                  className="inline-flex items-center justify-center rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-2 text-[var(--theme-muted)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
+                  className="absolute right-0 inline-flex items-center justify-center rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-2 text-[var(--theme-muted)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
                   aria-label="Open conductor settings"
                 >
                   <HugeiconsIcon icon={Settings01Icon} size={18} strokeWidth={1.7} />
@@ -1242,44 +1549,40 @@ export function Conductor() {
                 </div>
 
                 <div className="mt-6 space-y-4">
-                  <label className="block space-y-2">
-                    <span className="text-sm font-medium text-[var(--theme-text)]">Orchestrator Model</span>
-                    <select
-                      value={conductor.conductorSettings.orchestratorModel}
-                      onChange={(event) => updateSettings({ orchestratorModel: event.target.value })}
-                      className="w-full appearance-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3 text-sm text-[var(--theme-text)] outline-none transition-colors focus:border-[var(--theme-accent)]"
-                    >
-                      <option value="">Default (auto)</option>
-                      {availableModels.map((m) => (
-                        <option key={`orch-${m.id}`} value={m.id ?? ''}>{m.name ?? m.id}{m.provider ? ` (${m.provider})` : ''}</option>
-                      ))}
-                    </select>
-                  </label>
+                  <ModelSelectorDropdown
+                    label="Orchestrator Model"
+                    value={conductor.conductorSettings.orchestratorModel}
+                    onChange={(nextValue) => updateSettings({ orchestratorModel: nextValue })}
+                    models={availableModels}
+                  />
 
-                  <label className="block space-y-2">
-                    <span className="text-sm font-medium text-[var(--theme-text)]">Worker Model</span>
-                    <select
-                      value={conductor.conductorSettings.workerModel}
-                      onChange={(event) => updateSettings({ workerModel: event.target.value })}
-                      className="w-full appearance-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3 text-sm text-[var(--theme-text)] outline-none transition-colors focus:border-[var(--theme-accent)]"
-                    >
-                      <option value="">Default (auto)</option>
-                      {availableModels.map((m) => (
-                        <option key={`worker-${m.id}`} value={m.id ?? ''}>{m.name ?? m.id}{m.provider ? ` (${m.provider})` : ''}</option>
-                      ))}
-                    </select>
-                  </label>
+                  <ModelSelectorDropdown
+                    label="Worker Model"
+                    value={conductor.conductorSettings.workerModel}
+                    onChange={(nextValue) => updateSettings({ workerModel: nextValue })}
+                    models={availableModels}
+                  />
 
-                  <label className="block space-y-2">
+                  <div className="space-y-2">
                     <span className="text-sm font-medium text-[var(--theme-text)]">Project Directory</span>
-                    <input
-                      type="text"
-                      value={conductor.conductorSettings.projectsDir}
-                      onChange={(event) => updateSettings({ projectsDir: event.target.value })}
-                      placeholder="~/conductor-projects"
-                      className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3 text-sm text-[var(--theme-text)] outline-none transition-colors placeholder:text-[var(--theme-muted-2)] focus:border-[var(--theme-accent)]"
-                    />
-                  </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={conductor.conductorSettings.projectsDir}
+                        onChange={(event) => updateSettings({ projectsDir: event.target.value })}
+                        placeholder="~/conductor-projects"
+                        className="min-w-0 flex-1 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3 text-sm text-[var(--theme-text)] outline-none transition-colors placeholder:text-[var(--theme-muted-2)] focus:border-[var(--theme-accent)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={openDirectoryBrowser}
+                        className="shrink-0 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card2)] px-4 py-3 text-sm font-medium text-[var(--theme-text)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
+                      >
+                        Browse
+                      </button>
+                    </div>
+                    <p className="text-xs text-[var(--theme-muted-2)]">Type a path directly or choose a directory from the browser.</p>
+                  </div>
 
                   <label className="block space-y-2">
                     <span className="text-sm font-medium text-[var(--theme-text)]">Max Parallel Workers</span>
@@ -1336,6 +1639,160 @@ export function Conductor() {
               </div>
             </div>
           )}
+
+          {directoryBrowserOpen ? (
+            <div
+              className="fixed inset-0 z-[70] flex items-center justify-center bg-[color-mix(in_srgb,var(--theme-bg)_55%,transparent)] px-4 py-6 backdrop-blur-md"
+              onClick={closeDirectoryBrowser}
+            >
+              <div
+                className="w-full max-w-2xl rounded-3xl border border-[var(--theme-border2)] bg-[var(--theme-card)] p-5 shadow-[0_24px_80px_var(--theme-shadow)] sm:p-6"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Directory Browser</p>
+                    <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--theme-text)]">Choose project directory</h3>
+                    <p className="mt-2 text-sm text-[var(--theme-muted-2)]">Select the folder where Conductor should create project output.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeDirectoryBrowser}
+                    className="inline-flex size-10 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card2)] text-lg text-[var(--theme-muted)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
+                    aria-label="Close directory browser"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDirectoryBrowserPath(getParentDirectory(directoryBrowserPath))}
+                      disabled={directoryBrowserLoading || getParentDirectory(directoryBrowserPath) === directoryBrowserPath}
+                      className={cn(
+                        'rounded-xl border px-3 py-2 text-sm font-medium transition-colors',
+                        directoryBrowserLoading || getParentDirectory(directoryBrowserPath) === directoryBrowserPath
+                          ? 'cursor-not-allowed border-[var(--theme-border)] bg-[var(--theme-card2)] text-[var(--theme-muted)] opacity-60'
+                          : 'border-[var(--theme-border)] bg-[var(--theme-bg)] text-[var(--theme-text)] hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]',
+                      )}
+                    >
+                      Up
+                    </button>
+                    <div className="min-w-0 flex-1 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3 py-2">
+                      <div className="flex flex-wrap items-center gap-1 text-sm">
+                        {directoryBreadcrumbs.map((crumb, index) => (
+                          <div key={crumb.path} className="flex items-center gap-1">
+                            {index > 0 ? <span className="text-[var(--theme-muted-2)]">/</span> : null}
+                            <button
+                              type="button"
+                              onClick={() => setDirectoryBrowserPath(crumb.path)}
+                              className={cn(
+                                'rounded-md px-1.5 py-0.5 transition-colors',
+                                crumb.path === directoryBrowserPath
+                                  ? 'bg-[var(--theme-accent-soft)] text-[var(--theme-accent-strong)]'
+                                  : 'text-[var(--theme-text)] hover:bg-[var(--theme-card2)]',
+                              )}
+                            >
+                              {crumb.label}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--theme-muted)]">Current path</span>
+                      <span className="truncate text-sm text-[var(--theme-text)]">{directoryBrowserPath}</span>
+                    </div>
+                  </div>
+
+                  {directoryBrowserError ? (
+                    <div className="rounded-2xl border border-[var(--theme-warning-border)] bg-[var(--theme-warning-soft)] px-4 py-3 text-sm text-[var(--theme-warning)]">
+                      {directoryBrowserError}
+                    </div>
+                  ) : null}
+
+                  <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-bg)]">
+                    <div className="flex items-center justify-between border-b border-[var(--theme-border)] px-4 py-3">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--theme-muted)]">Folders</span>
+                      {directoryBrowserLoading ? (
+                        <span className="text-xs text-[var(--theme-muted-2)]">Loading…</span>
+                      ) : (
+                        <span className="text-xs text-[var(--theme-muted-2)]">{directoryBrowserEntries.length} visible</span>
+                      )}
+                    </div>
+                    <div className="max-h-[22rem] overflow-y-auto p-2">
+                      {directoryBrowserLoading ? (
+                        <div className="flex items-center justify-center gap-3 px-4 py-10 text-sm text-[var(--theme-muted)]">
+                          <div className="size-4 animate-spin rounded-full border-2 border-[var(--theme-border)] border-t-[var(--theme-accent)]" />
+                          <span>Loading folders…</span>
+                        </div>
+                      ) : directoryBrowserEntries.length > 0 ? (
+                        <div className="space-y-1">
+                          {directoryBrowserEntries.map((entry) => (
+                            <button
+                              key={entry.path}
+                              type="button"
+                              onClick={() => setDirectoryBrowserPath(entry.path)}
+                              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-[var(--theme-text)] transition-colors hover:bg-[var(--theme-card2)]"
+                            >
+                              <span className="inline-flex size-2 rounded-full bg-[var(--theme-accent)]" />
+                              <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+                              <span className="text-xs text-[var(--theme-muted)]">Open</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="px-4 py-10 text-center text-sm text-[var(--theme-muted)]">
+                          No folders found in this location.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--theme-muted)]">Quick paths</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {getDirectorySuggestions().map((pathOption) => (
+                        <button
+                          key={pathOption}
+                          type="button"
+                          onClick={() => setDirectoryBrowserPath(pathOption)}
+                          className="rounded-full border border-[var(--theme-border)] bg-[var(--theme-card2)] px-3 py-1.5 text-xs font-medium text-[var(--theme-text)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
+                        >
+                          {pathOption}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={closeDirectoryBrowser}
+                      className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-4 py-3 text-sm font-medium text-[var(--theme-text)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateSettings({ projectsDir: directoryBrowserPath })
+                        closeDirectoryBrowser()
+                      }}
+                      className="rounded-xl bg-[var(--theme-accent)] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[var(--theme-accent-strong)]"
+                    >
+                      Select This Directory
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </main>
       </div>
     )
