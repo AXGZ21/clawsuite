@@ -858,7 +858,7 @@ export function AgentViewPanel() {
 
               {/* Center — title */}
               <h2 className="text-sm font-semibold text-primary-900">
-                Agent Hub
+                Conductor
               </h2>
 
               {/* Right — expand + close */}
@@ -868,10 +868,10 @@ export function AgentViewPanel() {
                   variant="ghost"
                   onClick={function handleExpandHub() {
                     setOpen(false)
-                    navigate({ to: '/agent-swarm' })
+                    navigate({ to: '/conductor' })
                   }}
-                  aria-label="Open Agent Hub"
-                  title="Open Agent Hub"
+                  aria-label="Open Conductor"
+                  title="Open Conductor"
                 >
                   <HugeiconsIcon
                     icon={ArrowExpand01Icon}
@@ -1293,7 +1293,7 @@ export function AgentViewPanel() {
                       {activeCount}
                     </span>
                   </div>
-                  <h2 className="text-sm font-semibold text-primary-900">Agent Hub</h2>
+                  <h2 className="text-sm font-semibold text-primary-900">Conductor</h2>
                   <button
                     type="button"
                     onClick={() => setOpen(false)}

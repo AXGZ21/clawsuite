@@ -196,11 +196,11 @@ export function CommandPalette({
       {
         id: 'screen-agent-hub',
         group: 'Screens',
-        label: 'Agent Hub',
+        label: 'Conductor',
         keywords: 'agent swarm orchestrator',
         shortcut: 'Go',
         icon: UserGroupIcon,
-        onSelect: () => void navigate({ to: '/agent-swarm' }),
+        onSelect: () => void navigate({ to: '/conductor' }),
       },
       {
         id: 'screen-terminal',
