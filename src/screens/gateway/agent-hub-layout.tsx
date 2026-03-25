@@ -1,9 +1,6 @@
 import { useMemo, type CSSProperties } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { HugeiconsIcon } from '@hugeicons/react'
-import { Rocket01Icon } from '@hugeicons/core-free-icons'
-import { Button } from '@/components/ui/button'
 import { fetchSessions, type GatewaySession } from '@/lib/gateway-api'
 import type { AgentWorkingRow } from './components/agents-working-panel'
 import { OfficeView } from './components/office-view'
@@ -117,22 +114,8 @@ export function AgentHubLayout({ agents }: AgentHubLayoutProps) {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[var(--theme-bg)] text-[var(--theme-text)]" style={THEME_STYLE}>
-      <main className="mx-auto flex w-full max-w-[960px] flex-1 flex-col gap-6 px-4 pb-24 pt-5 md:px-6 md:pt-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Agent Hub</p>
-            <h1 className="mt-1 text-2xl font-semibold text-[var(--theme-text)]">The Office</h1>
-          </div>
-          <Button
-            className="h-11 rounded-xl bg-[var(--theme-accent)] px-5 text-white hover:bg-[var(--theme-accent-strong)]"
-            onClick={() => void navigate({ to: '/conductor' })}
-          >
-            <HugeiconsIcon icon={Rocket01Icon} size={18} strokeWidth={1.8} />
-            New Mission
-          </Button>
-        </div>
-
-        <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] shadow-sm" style={{ height: 600 }}>
+      <main className="mx-auto flex w-full max-w-[960px] flex-1 flex-col items-stretch justify-center gap-6 px-4 pb-24 md:px-6">
+        <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] shadow-sm" style={{ height: 520 }}>
           <OfficeView
             agentRows={agentRows}
             missionRunning={hasActive}
@@ -140,7 +123,7 @@ export function AgentHubLayout({ agents }: AgentHubLayoutProps) {
             onNewMission={() => void navigate({ to: '/conductor' })}
             processType="parallel"
             companyName="Agent Office"
-            containerHeight={600}
+            containerHeight={520}
           />
         </section>
       </main>
