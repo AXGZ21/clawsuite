@@ -774,6 +774,7 @@ function deriveSessionStatus(session: GatewaySession): 'running' | 'completed' |
 export function Conductor() {
   const conductor = useConductorGateway()
   const [goalDraft, setGoalDraft] = useState('')
+  const [missionModalOpen, setMissionModalOpen] = useState(false)
   const [continueDraft, setContinueDraft] = useState('')
   const [continueModalOpen, setContinueModalOpen] = useState(false)
   const [selectedAction, setSelectedAction] = useState<QuickActionId>('build')
@@ -873,6 +874,7 @@ export function Conductor() {
   const handleNewMission = () => {
     conductor.resetMission()
     setGoalDraft('')
+    setMissionModalOpen(false)
     setContinueDraft('')
     setContinueModalOpen(false)
     setSelectedTaskId(null)
@@ -881,8 +883,19 @@ export function Conductor() {
   const handleSubmit = async () => {
     const trimmed = goalDraft.trim()
     if (!trimmed) return
+    setMissionModalOpen(false)
     setContinueDraft('')
     await conductor.sendMission(trimmed)
+  }
+
+  const handleQuickActionSelect = (action: (typeof QUICK_ACTIONS)[number]) => {
+    setSelectedAction(action.id)
+    setGoalDraft((current) => {
+      const trimmed = current.trim()
+      if (!trimmed) return `${action.label}: `
+      if (trimmed.toLowerCase().startsWith(`${action.label.toLowerCase()}:`)) return current
+      return `${action.label}: ${trimmed}`
+    })
   }
 
   const handleContinueMission = async () => {
@@ -1375,70 +1388,11 @@ export function Conductor() {
                 agentRows={homeOfficeRows}
                 missionRunning={homeOfficeRows.some((a) => a.status === 'active')}
                 onViewOutput={() => {}}
+                onNewMission={() => setMissionModalOpen(true)}
                 processType="parallel"
                 companyName="Agent Office"
                 containerHeight={340}
-                hideHeader
               />
-            </section>
-
-            <section className="w-full rounded-[28px] border border-[var(--theme-border2)] bg-[var(--theme-card)] p-4 shadow-[0_24px_80px_var(--theme-shadow)]">
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {QUICK_ACTIONS.map((action) => (
-                    <button
-                      key={action.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedAction(action.id)
-                        setGoalDraft((current) => {
-                          const trimmed = current.trim()
-                          if (!trimmed) return `${action.label}: `
-                          if (trimmed.toLowerCase().startsWith(`${action.label.toLowerCase()}:`)) return current
-                          return `${action.label}: ${trimmed}`
-                        })
-                      }}
-                      className={cn(
-                        'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                        selectedAction === action.id
-                          ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent-strong)]'
-                          : 'border-[var(--theme-border)] bg-transparent text-[var(--theme-muted)] hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]',
-                      )}
-                    >
-                      <HugeiconsIcon icon={action.icon} size={14} strokeWidth={1.7} />
-                      {action.label}
-                    </button>
-                  ))}
-                </div>
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    void handleSubmit()
-                  }}
-                  className="rounded-full border border-[var(--theme-border2)] bg-[var(--theme-bg)] p-1.5 shadow-[0_10px_30px_color-mix(in_srgb,var(--theme-shadow)_12%,transparent)]"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="pl-3 text-[var(--theme-muted)]">
-                      <HugeiconsIcon icon={Search01Icon} size={16} strokeWidth={1.8} />
-                    </span>
-                    <input
-                      type="text"
-                      value={goalDraft}
-                      onChange={(event) => setGoalDraft(event.target.value)}
-                      placeholder={`${QUICK_ACTIONS.find((action) => action.id === selectedAction)?.label ?? 'Build'}: describe the mission, constraints, and desired outcome.`}
-                      className="min-w-0 flex-1 bg-transparent px-1 py-2.5 text-sm text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-muted-2)] md:text-base"
-                    />
-                    <Button
-                      type="submit"
-                      disabled={!goalDraft.trim() || conductor.isSending}
-                      className="rounded-full bg-[var(--theme-accent)] px-4 text-white hover:bg-[var(--theme-accent-strong)]"
-                    >
-                      {conductor.isSending ? 'Launching...' : 'Launch'}
-                      <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={1.7} />
-                    </Button>
-                  </div>
-                </form>
-              </div>
             </section>
 
             {(hasMissionHistory || conductor.recentSessions.length > 0) && (
@@ -1550,6 +1504,80 @@ export function Conductor() {
               </section>
             )}
           </div>
+
+          {missionModalOpen ? (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--theme-bg)_48%,transparent)] px-4 py-6 backdrop-blur-md"
+              onClick={() => setMissionModalOpen(false)}
+            >
+              <div
+                className="w-full max-w-2xl rounded-3xl border border-[var(--theme-border2)] bg-[var(--theme-card)] p-5 shadow-[0_24px_80px_var(--theme-shadow)] sm:p-6"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold tracking-tight text-[var(--theme-text)]">New Mission</h2>
+                    <p className="mt-1 text-sm text-[var(--theme-muted-2)]">Describe the mission, constraints, and desired outcome.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMissionModalOpen(false)}
+                    className="inline-flex size-9 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card2)] text-lg text-[var(--theme-muted)] transition-colors hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
+                    aria-label="Close new mission dialog"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <form
+                  className="mt-5 space-y-4"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void handleSubmit()
+                  }}
+                >
+                  <div className="flex flex-wrap gap-2">
+                    {QUICK_ACTIONS.map((action) => (
+                      <button
+                        key={action.id}
+                        type="button"
+                        onClick={() => handleQuickActionSelect(action)}
+                        className={cn(
+                          'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                          selectedAction === action.id
+                            ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent-strong)]'
+                            : 'border-[var(--theme-border)] bg-transparent text-[var(--theme-muted)] hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]',
+                        )}
+                      >
+                        <HugeiconsIcon icon={action.icon} size={14} strokeWidth={1.7} />
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <textarea
+                    value={goalDraft}
+                    onChange={(event) => setGoalDraft(event.target.value)}
+                    placeholder={`${QUICK_ACTIONS.find((action) => action.id === selectedAction)?.label ?? 'Build'}: describe the mission, constraints, and desired outcome.`}
+                    disabled={conductor.isSending}
+                    rows={8}
+                    className="min-h-[220px] w-full rounded-3xl border border-[var(--theme-border2)] bg-[var(--theme-bg)] px-4 py-4 text-sm text-[var(--theme-text)] outline-none transition-colors placeholder:text-[var(--theme-muted-2)] focus:border-[var(--theme-accent)] disabled:cursor-not-allowed disabled:opacity-60 md:text-base"
+                  />
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={!goalDraft.trim() || conductor.isSending}
+                      className="rounded-full bg-[var(--theme-accent)] px-5 text-white hover:bg-[var(--theme-accent-strong)]"
+                    >
+                      {conductor.isSending ? 'Launching...' : 'Launch Mission'}
+                      <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={1.7} />
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          ) : null}
 
           {settingsOpen && (
             <div
