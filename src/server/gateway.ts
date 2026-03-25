@@ -108,8 +108,8 @@ const HANDSHAKE_TIMEOUT_MS = 15000
 const RPC_TIMEOUT_MS = 30000
 
 // ── Circuit breaker ───────────────────────────────────────────────
-const CIRCUIT_BREAKER_THRESHOLD = 5    // consecutive failures to trip
-const CIRCUIT_BREAKER_COOLDOWN_MS = 15000 // how long to stay open
+const CIRCUIT_BREAKER_THRESHOLD = 15   // consecutive failures to trip (raised: one slow RPC shouldn't kill all)
+const CIRCUIT_BREAKER_COOLDOWN_MS = 10000 // how long to stay open
 
 export function getGatewayConfig() {
   // Check if browser set a custom gateway URL (for network/mobile access)
@@ -277,7 +277,11 @@ class GatewayClient {
         if (settled) return // RPC already resolved/rejected — skip
         settled = true
         this.cleanupPendingRequest(requestId)
-        this.circuitFailures += 1
+        // Don't count known-slow RPCs toward circuit breaker
+        const slowRpcs = ['sessions.usage', 'sessions.costs', 'usage.analytics', 'usage.summary']
+        if (!slowRpcs.includes(method)) {
+          this.circuitFailures += 1
+        }
         if (this.circuitFailures >= CIRCUIT_BREAKER_THRESHOLD) {
           this.circuitOpen = true
           this.circuitOpenedAt = Date.now()
