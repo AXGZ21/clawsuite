@@ -29,7 +29,6 @@ export type ConductorSettings = {
 
 const ACTIVE_MISSION_STORAGE_KEY = 'conductor:active-mission'
 const CONDUCTOR_SETTINGS_STORAGE_KEY = 'conductor-settings'
-const STALE_MISSION_MAX_AGE_MS = 30 * 60 * 1000
 const DEFAULT_CONDUCTOR_SETTINGS: ConductorSettings = {
   orchestratorModel: '',
   workerModel: '',
@@ -235,16 +234,16 @@ function loadPersistedMission(): PersistedMission | null {
     ) {
       return null
     }
-    const shouldResetActiveMission =
-      (phase === 'running' || phase === 'decomposing') &&
-      (!missionStartedAt || Date.now() - new Date(missionStartedAt).getTime() > STALE_MISSION_MAX_AGE_MS)
+    // Never restore running/decomposing — if the browser closed mid-mission, it's dead.
+    // Only restore 'complete' (reviewable) or 'idle'.
+    const isStale = phase === 'running' || phase === 'decomposing'
 
     return {
-      goal,
-      phase: shouldResetActiveMission ? 'idle' : phase,
-      missionStartedAt,
-      workerKeys: shouldResetActiveMission ? [] : workerKeys,
-      workerLabels: shouldResetActiveMission ? [] : workerLabels,
+      goal: isStale ? '' : goal,
+      phase: isStale ? 'idle' : phase,
+      missionStartedAt: isStale ? null : missionStartedAt,
+      workerKeys: isStale ? [] : workerKeys,
+      workerLabels: isStale ? [] : workerLabels,
       workerOutputs,
       streamText,
       planText,
