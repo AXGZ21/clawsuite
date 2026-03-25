@@ -66,17 +66,7 @@ async function cronRpcWithFallback<T>(params: unknown): Promise<T> {
   throw lastError instanceof Error ? lastError : new Error('cron add failed')
 }
 
-async function cronRunWithFallback(jobId: string): Promise<void> {
-  const methods = ['cron.run', 'cron.jobs.run', 'scheduler.jobs.run']
-  for (const method of methods) {
-    try {
-      await gatewayRpc(method, { jobId, runMode: 'force' })
-      return
-    } catch {
-      continue
-    }
-  }
-}
+
 
 export const Route = createFileRoute('/api/conductor-spawn')({
   server: {
@@ -121,6 +111,14 @@ export const Route = createFileRoute('/api/conductor-spawn')({
 
           // Don't force-run — the "at: now" schedule fires immediately on its own.
           // Calling cron.run too would double-trigger the orchestrator.
+
+          // Schedule cleanup — delete the cron job after a delay so it doesn't linger
+          setTimeout(() => {
+            const removeMethods = ['cron.remove', 'cron.jobs.remove', 'scheduler.jobs.remove']
+            for (const method of removeMethods) {
+              gatewayRpc(method, { jobId }).then(() => {}).catch(() => {})
+            }
+          }, 30_000)
 
           return json({
             ok: true,
