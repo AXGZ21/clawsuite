@@ -343,7 +343,7 @@ function createTray() {
                 label: 'Navigate',
                 submenu: [
                     { label: '📊 Dashboard', click: () => navigateTo('/dashboard') },
-                    { label: '🤖 Agent Hub', click: () => navigateTo('/agent-swarm') },
+                    { label: '🚀 Conductor', click: () => navigateTo('/conductor') },
                     { label: '📋 Tasks', click: () => navigateTo('/tasks') },
                     { label: '⏰ Cron', click: () => navigateTo('/cron') },
                     { label: '💰 Costs', click: () => navigateTo('/costs') },

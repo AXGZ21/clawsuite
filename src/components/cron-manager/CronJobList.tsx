@@ -152,7 +152,7 @@ export function CronJobList({
 
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-primary-200 bg-primary-50/80 p-8 text-center text-sm text-primary-600 text-pretty">
-          No cron jobs matched your filters.
+          No cron jobs yet. Create one to get started.
         </div>
       ) : (
         <motion.div

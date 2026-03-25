@@ -1407,7 +1407,7 @@ export function Conductor() {
               />
             </section>
 
-            {(hasMissionHistory || conductor.recentSessions.length > 0) && (
+            {(hasMissionHistory || conductor.recentSessions.length > 0) ? (
               <section className="mt-6 w-full space-y-3">
                 <div className="flex items-center gap-3">
                   <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-muted)]">Recent Missions</h2>
@@ -1534,6 +1534,13 @@ export function Conductor() {
                     No {activityFilter === 'all' ? '' : `${activityFilter} `}{hasMissionHistory ? 'missions' : 'sessions'} found
                   </div>
                 )}
+              </section>
+            ) : (
+              <section className="mt-6 w-full">
+                <div className="rounded-xl border border-dashed border-[var(--theme-border)] px-4 py-8 text-center">
+                  <p className="text-sm text-[var(--theme-muted)]">No missions yet.</p>
+                  <p className="mt-1 text-xs text-[var(--theme-muted-2)]">Launch your first mission and it will appear here.</p>
+                </div>
               </section>
             )}
           </div>
