@@ -11,6 +11,8 @@ import {
 } from '@hugeicons/core-free-icons'
 import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/prompt-kit/markdown'
+import { IsometricOffice } from '@/components/agent-swarm/isometric-office'
+import { type SwarmSession } from '@/stores/agent-swarm-store'
 import { type GatewaySession } from '@/lib/gateway-api'
 import { cn } from '@/lib/utils'
 import { type MissionHistoryEntry, useConductorGateway } from './hooks/use-conductor-gateway'
@@ -329,6 +331,32 @@ export function Conductor() {
   const activeWorkerCount = conductor.activeWorkers.length
   const missionProgress = totalWorkers > 0 ? Math.round((completedWorkers / totalWorkers) * 100) : 0
   const totalTokens = conductor.workers.reduce((sum, worker) => sum + worker.totalTokens, 0)
+  const officeSessions = useMemo<SwarmSession[]>(() => {
+    if (conductor.workers.length > 0) {
+      return conductor.workers.map((worker) => ({
+        ...worker.raw,
+        swarmStatus:
+          worker.status === 'complete'
+            ? 'complete'
+            : worker.status === 'stale'
+              ? 'failed'
+              : 'running',
+        staleness: 0,
+      }))
+    }
+
+    return [
+      {
+        key: 'conductor-orchestrator-placeholder',
+        label: 'Conductor',
+        title: conductor.goal || 'Planning mission',
+        initialMessage: conductor.goal || 'Planning mission',
+        status: 'thinking',
+        swarmStatus: 'thinking',
+        staleness: 0,
+      } as SwarmSession,
+    ]
+  }, [conductor.goal, conductor.workers])
 
   const completePhaseProjectPath = useMemo(() => {
     const workerOutputTexts = [
@@ -1221,39 +1249,9 @@ export function Conductor() {
               </div>
             </section>
           )}
-          {conductor.workers.length > 0 && (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {conductor.workers.map((worker, index) => {
-                const persona = getAgentPersona(index)
-                const dot = getWorkerDot(worker.status)
-                return (
-                  <div
-                    key={worker.key}
-                    className={cn(
-                      'flex items-center gap-3 rounded-2xl border border-l-4 bg-[var(--theme-card)] px-4 py-3',
-                      getWorkerBorderClass(worker.status),
-                    )}
-                  >
-                    <span className={cn('size-2.5 shrink-0 rounded-full', dot.dotClass)} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-[var(--theme-text)]">
-                        {persona.emoji} {persona.name}
-                      </p>
-                      <p className="truncate text-xs text-[var(--theme-muted)]">{worker.displayName}</p>
-                    </div>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--theme-muted)]">
-                      {dot.label}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-          {conductor.workers.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-8 text-center text-sm text-[var(--theme-muted)]">
-              <CyclingStatus steps={PLANNING_STEPS} intervalMs={2500} />
-            </div>
-          )}
+          <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] shadow-[0_24px_80px_var(--theme-shadow)]">
+            <IsometricOffice sessions={officeSessions} className="h-[360px]" />
+          </section>
 
           {conductor.tasks.length > 0 ? (
             <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
