@@ -3,7 +3,6 @@ import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
   ArrowDown01Icon,
-  BotIcon,
   BrainIcon,
   ChartLineData01Icon,
   ChartLineData02Icon,
@@ -798,7 +797,7 @@ function ChatSidebarComponent({
     {
       kind: 'link',
       to: '/conductor',
-      icon: BotIcon,
+      icon: Rocket01Icon,
       label: 'Conductor',
       active: isAgentSwarmActive,
       dataTour: 'agent-hub',
@@ -871,15 +870,7 @@ function ChatSidebarComponent({
     },
   ]
 
-  const missionItems: NavItemDef[] = [
-    {
-      kind: 'link',
-      to: '/conductor',
-      icon: Rocket01Icon,
-      label: 'Conductor',
-      active: pathname.startsWith('/conductor'),
-    },
-  ]
+  const missionItems: NavItemDef[] = []
 
   const gatewayItems: NavItemDef[] = [
     {
@@ -1123,22 +1114,26 @@ function ChatSidebarComponent({
             </>
           )}
 
-          {/* WORKSPACE */}
-          <SectionLabel
-            label="Mission"
-            isCollapsed={isVisuallyCollapsed}
-            transition={transition}
-            collapsible
-            expanded={missionExpanded}
-            onToggle={toggleMission}
-          />
-          <CollapsibleSection
-            expanded={missionExpanded || isCollapsed}
-            items={missionItems}
-            isCollapsed={isVisuallyCollapsed}
-            transition={transition}
-            onSelectSession={onSelectSession}
-          />
+          {/* MISSION — hidden when empty (Conductor moved to Suite) */}
+          {missionItems.length > 0 && (
+            <>
+              <SectionLabel
+                label="Mission"
+                isCollapsed={isVisuallyCollapsed}
+                transition={transition}
+                collapsible
+                expanded={missionExpanded}
+                onToggle={toggleMission}
+              />
+              <CollapsibleSection
+                expanded={missionExpanded || isCollapsed}
+                items={missionItems}
+                isCollapsed={isVisuallyCollapsed}
+                transition={transition}
+                onSelectSession={onSelectSession}
+              />
+            </>
+          )}
           {/* GATEWAY */}
           <SectionLabel
             label="Gateway"
