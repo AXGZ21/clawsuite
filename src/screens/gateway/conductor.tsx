@@ -2085,6 +2085,40 @@ export function Conductor() {
               </section>
             ) : null}
 
+            {/* Worker output fallback — show when no iframe preview is available */}
+            {(!completePhaseProjectPath || previewState.unavailable) && (() => {
+              const outputSections = conductor.workers
+                .map((worker, index) => {
+                  const output = (conductor.workerOutputs[worker.key] ?? getLastAssistantMessage(worker.raw.messages as HistoryMessage[] | undefined)).trim()
+                  if (!output) return null
+                  const persona = getAgentPersona(index)
+                  return { key: worker.key, persona, label: worker.label, output }
+                })
+                .filter((section): section is NonNullable<typeof section> => section !== null)
+
+              const fallbackText = outputSections.length > 0
+                ? outputSections.map((s) => `### ${s.persona.emoji} ${s.persona.name} · ${s.label}\n\n${s.output}`).join('\n\n---\n\n')
+                : conductor.streamText.trim()
+
+              if (!fallbackText) return null
+
+              return (
+                <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6 shadow-[0_24px_80px_var(--theme-shadow)]">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">Output</p>
+                      <p className="mt-1 text-xs text-[var(--theme-muted-2)]">
+                        {completePhaseProjectPath ? `Preview unavailable for ${completePhaseOutputLabel}` : 'Agent work output'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-5 py-4">
+                    <Markdown className="max-h-[600px] max-w-none overflow-auto text-sm text-[var(--theme-text)]">{fallbackText}</Markdown>
+                  </div>
+                </section>
+              )
+            })()}
+
             {conductor.tasks.length > 1 && completedTaskOutputs.length > 0 && (
               <section className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6 shadow-[0_24px_80px_var(--theme-shadow)]">
                 <div className="flex items-center justify-between gap-3">
