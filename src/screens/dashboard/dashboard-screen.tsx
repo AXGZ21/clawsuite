@@ -640,7 +640,7 @@ export function DashboardScreen() {
                   <button
                     type="button"
                     onClick={handleLogoTap}
-                    className="shrink-0 cursor-pointer rounded-xl transition-transform active:scale-95"
+                    className="shrink-0 cursor-pointer rounded-xl transition-transform active:scale-95 touch-manipulation"
                     aria-label="Open quick menu"
                   >
                     <OpenClawStudioIcon className="size-8 rounded-xl overflow-hidden shadow-sm" />
@@ -651,7 +651,7 @@ export function DashboardScreen() {
                             role="button"
                             tabIndex={0}
                             className="whitespace-nowrap cursor-pointer"
-                            onClick={(e) => { e.stopPropagation(); markLogoTipSeen(); }}
+                            onClick={() => { markLogoTipSeen(); }}
                             onKeyDown={(e) => { if (e.key === 'Enter') markLogoTipSeen(); }}
                             aria-label="Dismiss quick menu tip"
                           >
