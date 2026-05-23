@@ -134,6 +134,13 @@ function getSnapshot(): Record<string, SessionTitleInfo> {
   return result
 }
 
+// Stable empty object for SSR — prevents hydration mismatch since
+// server can't access localStorage
+const SERVER_SNAPSHOT: Record<string, SessionTitleInfo> = {}
+function getServerSnapshot(): Record<string, SessionTitleInfo> {
+  return SERVER_SNAPSHOT
+}
+
 function subscribe(listener: () => void) {
   listeners.add(listener)
   return () => {
@@ -142,7 +149,7 @@ function subscribe(listener: () => void) {
 }
 
 export function useSessionTitles() {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }
 
 export function useSessionTitleInfo(friendlyId: string): SessionTitleInfo {

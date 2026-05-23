@@ -208,8 +208,9 @@ const config = defineConfig(({ mode, command }) => {
 
   // Allow access from Tailscale, LAN, or custom domains via env var
   // e.g. CLAWSUITE_ALLOWED_HOSTS=my-server.tail1234.ts.net,192.168.1.50
-  const allowedHosts: string[] | true = env.CLAWSUITE_ALLOWED_HOSTS?.trim()
-    ? env.CLAWSUITE_ALLOWED_HOSTS.split(',')
+  const exposedOverNetwork = !!env.CLAWSUITE_ALLOWED_HOSTS?.trim()
+  const allowedHosts: string[] | true = exposedOverNetwork
+    ? env.CLAWSUITE_ALLOWED_HOSTS!.split(',')
         .map((h) => h.trim())
         .filter(Boolean)
     : ['.ts.net']  // allow all Tailscale hostnames by default
@@ -254,10 +255,10 @@ const config = defineConfig(({ mode, command }) => {
     },
     server: {
       // Force IPv4 — 'localhost' resolves to ::1 (IPv6) on Windows, breaking gateway connectivity
-      host: allowedHosts.length > 0 ? '0.0.0.0' : '127.0.0.1',
-      allowedHosts: allowedHosts.length > 0 ? [...allowedHosts, '127.0.0.1', 'localhost'] : ['127.0.0.1', 'localhost'],
+      host: exposedOverNetwork ? '0.0.0.0' : '127.0.0.1',
+      allowedHosts: exposedOverNetwork ? [...allowedHosts, '127.0.0.1', 'localhost'] : ['127.0.0.1', 'localhost'],
       // HMR over Tailscale/reverse proxy: use client's origin so WS connects back through :443
-      hmr: allowedHosts.length > 0 ? { clientPort: 443, protocol: 'wss' } : undefined,
+      hmr: exposedOverNetwork ? { clientPort: 443, protocol: 'wss' } : undefined,
       proxy: {
         // WebSocket proxy: clients connect to /ws-gateway on the ClawSuite
         // server (any IP/port), which internally forwards to the local gateway.

@@ -50,8 +50,12 @@ function getSnapshot() {
   return read()
 }
 
+function getServerSnapshot(): DashboardSettings {
+  return DEFAULT_SETTINGS
+}
+
 export function useDashboardSettings() {
-  const settings = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  const settings = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   const update = useCallback(function updateSettings(
     patch: Partial<DashboardSettings>,
